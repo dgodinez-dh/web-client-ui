@@ -63,6 +63,7 @@ import SHORTCUTS from '../IrisGridShortcuts';
 import type IrisGrid from '../IrisGrid';
 import { type QuickFilter } from '../CommonTypes';
 import { isPartitionedGridModel } from '../PartitionedGridModel';
+import IrisGridUtils from '../IrisGridUtils';
 
 const log = Log.module('IrisGridContextMenuHandler');
 
@@ -506,7 +507,11 @@ class IrisGridContextMenuHandler extends GridMouseHandler {
       group: IrisGridContextMenuHandler.GROUP_GOTO,
       order: 10,
       action: () =>
-        this.irisGrid.toggleGotoRow(`${rowIndex + 1}`, `${value}`, column.name),
+        this.irisGrid.toggleGotoRow(
+          `${rowIndex + 1}`,
+          IrisGridUtils.convertValueToText(value, column.type),
+          column.name
+        ),
     };
     actions.push(gotoRow);
 
