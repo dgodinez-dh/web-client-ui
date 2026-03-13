@@ -400,35 +400,23 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
         }
 
         const pastedText = event.clipboardData.getData('text/plain');
-        const { selectionStart = 0, selectionEnd = 0 } = input.current;
 
-        if (selectionStart === null || selectionEnd === null) {
-          log.error('Paste attempted on non-text input element', event.target);
-          return;
-        }
-
-        log.debug('handlePaste', pastedText, selectionStart, selectionEnd);
+        log.debug('handlePaste', pastedText);
 
         // Normalize the pasted text
         const normalizedText = normalizePastedText(pastedText);
 
-        // Try to insert the pasted text at the current position
-        const newValue =
-          value.substring(0, selectionStart) +
-          normalizedText +
-          value.substring(selectionEnd);
-
         // Check if the pasted value is valid
-        if (isValid(newValue, selectionStart + normalizedText.length)) {
-          onChange(newValue);
+        if (isValid(normalizedText, normalizedText.length)) {
+          onChange(normalizedText);
           onSelect({
-            selectionStart: selectionStart + normalizedText.length,
-            selectionEnd: selectionStart + normalizedText.length,
+            selectionStart: normalizedText.length,
+            selectionEnd: normalizedText.length,
             selectionDirection: SELECTION_DIRECTION.NONE,
           });
         }
       },
-      [input, value, onChange, onSelect, isValid, normalizePastedText]
+      [input, onChange, onSelect, isValid, normalizePastedText]
     );
 
     function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
