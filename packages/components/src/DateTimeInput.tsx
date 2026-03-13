@@ -81,6 +81,17 @@ export const DateTimeInput = React.forwardRef<
     onBlur();
   }, [value, onBlur]);
 
+  /**
+   * Normalize pasted text by replacing 'T' with space to support ISO 8601 format
+   * @param text The pasted text
+   * @returns The normalized text
+   */
+  const normalizePastedText = useCallback(
+    // Support ISO 8601 format by replacing 'T' separator with space
+    (text: string): string => text.replace(/T/g, ' '),
+    []
+  );
+
   return (
     <div className="d-flex flex-row align-items-center">
       <MaskedInput
@@ -88,6 +99,7 @@ export const DateTimeInput = React.forwardRef<
         className={classNames(className)}
         example={EXAMPLES}
         getNextSegmentValue={getNextSegmentValue}
+        normalizePastedText={normalizePastedText}
         onChange={handleChange}
         onSelect={setSelection}
         onSubmit={onSubmit}

@@ -67,6 +67,8 @@ type MaskedInputProps = {
     selectionStart: number,
     selectionEnd: number
   ) => string;
+  /** Normalize pasted text before validation. Defaults to returning text unchanged. */
+  normalizePastedText?: (text: string) => string;
   onFocus?: React.FocusEventHandler;
   onBlur?: React.FocusEventHandler;
 
@@ -87,6 +89,7 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
       example,
       getNextSegmentValue = (range, delta, segmentValue) => segmentValue,
       getPreferredReplacementString = DEFAULT_GET_PREFERRED_REPLACEMENT_STRING,
+      normalizePastedText = (text: string) => text,
       onChange = () => false,
       onSelect = () => false,
       onSubmit,
@@ -406,23 +409,26 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
 
         log.debug('handlePaste', pastedText, selectionStart, selectionEnd);
 
+        // Normalize the pasted text
+        const normalizedText = normalizePastedText(pastedText);
+
         // Try to insert the pasted text at the current position
         const newValue =
           value.substring(0, selectionStart) +
-          pastedText +
+          normalizedText +
           value.substring(selectionEnd);
 
         // Check if the pasted value is valid
-        if (isValid(newValue, selectionStart + pastedText.length)) {
+        if (isValid(newValue, selectionStart + normalizedText.length)) {
           onChange(newValue);
           onSelect({
-            selectionStart: selectionStart + pastedText.length,
-            selectionEnd: selectionStart + pastedText.length,
+            selectionStart: selectionStart + normalizedText.length,
+            selectionEnd: selectionStart + normalizedText.length,
             selectionDirection: SELECTION_DIRECTION.NONE,
           });
         }
       },
-      [input, value, onChange, onSelect, isValid]
+      [input, value, onChange, onSelect, isValid, normalizePastedText]
     );
 
     function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
