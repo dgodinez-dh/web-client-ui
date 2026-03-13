@@ -82,15 +82,31 @@ export const DateTimeInput = React.forwardRef<
   }, [value, onBlur]);
 
   /**
-   * Normalize pasted text by replacing 'T' with space to support ISO 8601 format
+   * Normalize pasted text by:
+   * - Replacing 'T' with space to support ISO 8601 format
+   * - Removing timezone information (e.g., "EDT", "+05:00", "Z")
+   * - Adding zero-width space separators in the nanosecond part
    * @param text The pasted text
    * @returns The normalized text
    */
-  const normalizePastedText = useCallback(
-    // Support ISO 8601 format by replacing 'T' separator with space
-    (text: string): string => text.replace(/T/g, ' '),
-    []
-  );
+  const normalizePastedText = useCallback((text: string): string => {
+    // Replace first 'T' separator with space for ISO 8601 format (without global flag to preserve 'T' in timezone like EDT)
+    let normalized = text.replace(/T/, ' ');
+
+    // Remove timezone information
+    // Match datetime up to optional fractional seconds, then strip everything else
+    // Pattern: YYYY-MM-DD HH:MM:SS[.SSSSSSSSS] followed by optional timezone
+    const dateTimeMatch = normalized.match(
+      /^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?)/
+    );
+
+    if (dateTimeMatch) {
+      [, normalized] = dateTimeMatch;
+    }
+
+    // Add zero-width space separators to match the expected pattern
+    return addSeparators(normalized);
+  }, []);
 
   return (
     <div className="d-flex flex-row align-items-center">
