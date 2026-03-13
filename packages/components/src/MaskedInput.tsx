@@ -383,6 +383,10 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
       }
     }
 
+    /**
+     * Handles paste events into the input
+     * @param event The paste event
+     */
     const handlePaste = useCallback(
       (event: React.ClipboardEvent<HTMLInputElement>): void => {
         event.preventDefault();
