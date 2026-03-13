@@ -99,10 +99,13 @@ export const DateTimeInput = React.forwardRef<
     if (defaultValue.length > 0) {
       const normalized = normalizePastedText(defaultValue);
       setValue(normalized);
+      // Notify parent with the normalized value (without separators)
+      onChange(fixIncompleteValue(removeSeparators(normalized)));
     } else {
       setValue('');
+      onChange('');
     }
-  }, [defaultValue, normalizePastedText]);
+  }, [defaultValue, normalizePastedText, onChange]);
 
   const handleChange = useCallback(
     (newValue: string): void => {
