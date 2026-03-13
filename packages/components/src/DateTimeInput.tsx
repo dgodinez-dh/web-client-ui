@@ -67,14 +67,14 @@ export const DateTimeInput = React.forwardRef<
   const [selection, setSelection] = useState<SelectionSegment>();
 
   /**
-   * Normalize pasted text by:
+   * Normalize text by:
    * - Replacing 'T' with space to support ISO 8601 format
    * - Removing timezone information (e.g., "EDT", "+05:00", "Z")
    * - Adding zero-width space separators in the nanosecond part
-   * @param text The pasted text
+   * @param text The text
    * @returns The normalized text
    */
-  const normalizePastedText = useCallback((text: string): string => {
+  const normalizeText = useCallback((text: string): string => {
     // Replace first 'T' separator with space for ISO 8601 format (without global flag to preserve 'T' in timezone like EDT)
     let normalized = text.replace(/T/, ' ');
 
@@ -97,7 +97,7 @@ export const DateTimeInput = React.forwardRef<
   // Apply normalization to handle raw unformatted values (e.g., with timezone info)
   useEffect(() => {
     if (defaultValue.length > 0) {
-      const normalized = normalizePastedText(defaultValue);
+      const normalized = normalizeText(defaultValue);
       setValue(normalized);
       // Notify parent with the normalized value (without separators)
       onChange(fixIncompleteValue(removeSeparators(normalized)));
@@ -105,7 +105,7 @@ export const DateTimeInput = React.forwardRef<
       setValue('');
       onChange('');
     }
-  }, [defaultValue, normalizePastedText, onChange]);
+  }, [defaultValue, normalizeText, onChange]);
 
   const handleChange = useCallback(
     (newValue: string): void => {
@@ -134,7 +134,7 @@ export const DateTimeInput = React.forwardRef<
         className={classNames(className)}
         example={EXAMPLES}
         getNextSegmentValue={getNextSegmentValue}
-        normalizePastedText={normalizePastedText}
+        normalizePastedText={normalizeText}
         onChange={handleChange}
         onSelect={setSelection}
         onSubmit={onSubmit}

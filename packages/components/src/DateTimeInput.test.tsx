@@ -159,7 +159,7 @@ it('onSubmit works correctly', async () => {
   unmount();
 });
 
-describe('normalizePastedText', () => {
+describe('normalizeText', () => {
   it('replaces T separator with space for ISO 8601 format', async () => {
     const user = userEvent.setup();
     const onChange = jest.fn();
