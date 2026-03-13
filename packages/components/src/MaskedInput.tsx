@@ -196,23 +196,27 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
      * @param checkValue The value to check validity of
      * @param cursorPosition The position of the cursor to check up to
      */
-    function isValid(
-      checkValue: string,
-      cursorPosition = checkValue.length
-    ): boolean {
-      const patternRegex = new RegExp(`^${pattern}$`);
-      if (patternRegex.test(checkValue)) {
-        return true;
-      }
-
-      for (let i = 0; i < examples.length; i += 1) {
-        const filledValue = fillValue(checkValue, examples[i], cursorPosition);
-        if (patternRegex.test(filledValue)) {
+    const isValid = useCallback(
+      (checkValue: string, cursorPosition = checkValue.length): boolean => {
+        const patternRegex = new RegExp(`^${pattern}$`);
+        if (patternRegex.test(checkValue)) {
           return true;
         }
-      }
-      return false;
-    }
+
+        for (let i = 0; i < examples.length; i += 1) {
+          const filledValue = fillValue(
+            checkValue,
+            examples[i],
+            cursorPosition
+          );
+          if (patternRegex.test(filledValue)) {
+            return true;
+          }
+        }
+        return false;
+      },
+      [pattern, examples]
+    );
 
     /**
      * Returns the next segment after the given position
@@ -378,6 +382,44 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
         nextSegmentValue(selectionStart, 1);
       }
     }
+
+    const handlePaste = useCallback(
+      (event: React.ClipboardEvent<HTMLInputElement>): void => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!input.current) {
+          return;
+        }
+
+        const pastedText = event.clipboardData.getData('text/plain');
+        const { selectionStart = 0, selectionEnd = 0 } = input.current;
+
+        if (selectionStart === null || selectionEnd === null) {
+          log.error('Paste attempted on non-text input element', event.target);
+          return;
+        }
+
+        log.debug('handlePaste', pastedText, selectionStart, selectionEnd);
+
+        // Try to insert the pasted text at the current position
+        const newValue =
+          value.substring(0, selectionStart) +
+          pastedText +
+          value.substring(selectionEnd);
+
+        // Check if the pasted value is valid
+        if (isValid(newValue, selectionStart + pastedText.length)) {
+          onChange(newValue);
+          onSelect({
+            selectionStart: selectionStart + pastedText.length,
+            selectionEnd: selectionStart + pastedText.length,
+            selectionDirection: SELECTION_DIRECTION.NONE,
+          });
+        }
+      },
+      [input, value, onChange, onSelect, isValid]
+    );
 
     function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
       if (!input.current) {
@@ -547,6 +589,7 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
         value={value}
         onChange={() => undefined}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         onSelect={handleSelect}
         onSelectCapture={handleSelectCapture}
         onFocus={onFocus}
