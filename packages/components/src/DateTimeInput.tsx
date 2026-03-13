@@ -1,4 +1,9 @@
-import React, { type KeyboardEvent, useCallback, useState } from 'react';
+import React, {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import classNames from 'classnames';
 import Log from '@deephaven/log';
 import MaskedInput, { type SelectionSegment } from './MaskedInput';
@@ -61,26 +66,6 @@ export const DateTimeInput = React.forwardRef<
   );
   const [selection, setSelection] = useState<SelectionSegment>();
 
-  const handleChange = useCallback(
-    (newValue: string): void => {
-      log.debug('handleChange', newValue);
-      setValue(newValue);
-      onChange(fixIncompleteValue(removeSeparators(newValue)));
-    },
-    [onChange]
-  );
-
-  const handleBlur = useCallback((): void => {
-    const prevValue = removeSeparators(value);
-    const fixedValue = fixIncompleteValue(prevValue);
-    // Update the value displayed in the input
-    // onChange with the fixed value already triggered in handleChange
-    if (fixedValue !== prevValue) {
-      setValue(addSeparators(fixedValue));
-    }
-    onBlur();
-  }, [value, onBlur]);
-
   /**
    * Normalize pasted text by:
    * - Replacing 'T' with space to support ISO 8601 format
@@ -107,6 +92,37 @@ export const DateTimeInput = React.forwardRef<
     // Add zero-width space separators to match the expected pattern
     return addSeparators(normalized);
   }, []);
+
+  // Sync internal state with defaultValue prop when it changes
+  // Apply normalization to handle raw unformatted values (e.g., with timezone info)
+  useEffect(() => {
+    if (defaultValue.length > 0) {
+      const normalized = normalizePastedText(defaultValue);
+      setValue(normalized);
+    } else {
+      setValue('');
+    }
+  }, [defaultValue, normalizePastedText]);
+
+  const handleChange = useCallback(
+    (newValue: string): void => {
+      log.debug('handleChange', newValue);
+      setValue(newValue);
+      onChange(fixIncompleteValue(removeSeparators(newValue)));
+    },
+    [onChange]
+  );
+
+  const handleBlur = useCallback((): void => {
+    const prevValue = removeSeparators(value);
+    const fixedValue = fixIncompleteValue(prevValue);
+    // Update the value displayed in the input
+    // onChange with the fixed value already triggered in handleChange
+    if (fixedValue !== prevValue) {
+      setValue(addSeparators(fixedValue));
+    }
+    onBlur();
+  }, [value, onBlur]);
 
   return (
     <div className="d-flex flex-row align-items-center">
