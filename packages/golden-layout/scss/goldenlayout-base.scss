@@ -79,6 +79,36 @@ $height6: 15px; // Appears 1 time
       cursor: ew-resize;
     }
   }
+
+  // While part of an active 2D intersection (hover or drag), lift the line above
+  // pane content so an offset T/cross junction renders cleanly instead of being
+  // clipped by the neighbouring pane. Stays below the intersection handle
+  // (z-index 22) so the handle always wins pointer priority for 2D dragging.
+  &.lm_intersection_line {
+    z-index: 21;
+  }
+}
+
+// Intersection splitter: invisible grab area at crossing points for 2D resizing.
+// pointer-events intentionally inherits from ancestor so foreign drags (1D splitter,
+// grid column) suppress the handle without needing extra rules here.
+.lm_intersection_splitter {
+  position: absolute;
+  z-index: 22;
+  cursor: move;
+
+  .lm_drag_handle {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    cursor: move;
+  }
+}
+
+// Disable the intersection handle while a golden-layout drag is active.
+// The dark theme sets this on `.lm_dragging` too; this rule covers other themes.
+.lm_dragging .lm_intersection_splitter {
+  pointer-events: none;
 }
 
 // Pane Header (container of Tabs for each pane)
