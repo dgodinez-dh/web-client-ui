@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.24.0](https://github.com/deephaven/web-client-ui/compare/v1.23.0...v1.24.0) (2026-07-07)
+
+### Bug Fixes
+
+- DH-21845: pass settings to chart ([#2710](https://github.com/deephaven/web-client-ui/issues/2710)) ([01302ee](https://github.com/deephaven/web-client-ui/commit/01302ee4f9c8b843879806a8cff433831a05d8bb))
+- DH-23004: fall back to TablePluginLoaderContext in useLoadTablePlugin ([#2711](https://github.com/deephaven/web-client-ui/issues/2711)) ([a09d5e2](https://github.com/deephaven/web-client-ui/commit/a09d5e216a69dea431c76eb98077bbc83c944bdb))
+
 ## [1.23.0](https://github.com/deephaven/web-client-ui/compare/v1.22.1...v1.23.0) (2026-06-25)
 
 ### Features

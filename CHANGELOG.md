@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.24.0](https://github.com/deephaven/web-client-ui/compare/v1.23.0...v1.24.0) (2026-07-07)
+
+### Features
+
+- DH-22800: Support Intersection 2D Window Resizing ([#2701](https://github.com/deephaven/web-client-ui/issues/2701)) ([dcf157a](https://github.com/deephaven/web-client-ui/commit/dcf157a991e27f45025450c9293189c748d877e2))
+
+### Bug Fixes
+
+- DH-21845: pass settings to chart ([#2710](https://github.com/deephaven/web-client-ui/issues/2710)) ([01302ee](https://github.com/deephaven/web-client-ui/commit/01302ee4f9c8b843879806a8cff433831a05d8bb))
+- DH-23004: fall back to TablePluginLoaderContext in useLoadTablePlugin ([#2711](https://github.com/deephaven/web-client-ui/issues/2711)) ([a09d5e2](https://github.com/deephaven/web-client-ui/commit/a09d5e216a69dea431c76eb98077bbc83c944bdb))
+- DH-23018: Update PluginUtils to use the new manifest schema ([#2713](https://github.com/deephaven/web-client-ui/issues/2713)) ([13fb71c](https://github.com/deephaven/web-client-ui/commit/13fb71c4c4e119d01f153e2b5dc8a3726cdc9e83))
+
 ## [1.23.0](https://github.com/deephaven/web-client-ui/compare/v1.22.1...v1.23.0) (2026-06-25)
 
 ### Features

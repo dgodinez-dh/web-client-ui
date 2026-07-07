@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.24.0](https://github.com/deephaven/web-client-ui/compare/v1.23.0...v1.24.0) (2026-07-07)
+
+### Bug Fixes
+
+- DH-23018: Update PluginUtils to use the new manifest schema ([#2713](https://github.com/deephaven/web-client-ui/issues/2713)) ([13fb71c](https://github.com/deephaven/web-client-ui/commit/13fb71c4c4e119d01f153e2b5dc8a3726cdc9e83))
+
 ## [1.23.0](https://github.com/deephaven/web-client-ui/compare/v1.22.1...v1.23.0) (2026-06-25)
 
 ### Features

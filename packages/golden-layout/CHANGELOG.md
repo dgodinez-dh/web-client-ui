@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.24.0](https://github.com/deephaven/web-client-ui/compare/v1.23.0...v1.24.0) (2026-07-07)
+
+### Features
+
+- DH-22800: Support Intersection 2D Window Resizing ([#2701](https://github.com/deephaven/web-client-ui/issues/2701)) ([dcf157a](https://github.com/deephaven/web-client-ui/commit/dcf157a991e27f45025450c9293189c748d877e2))
+
 ## [1.22.1](https://github.com/deephaven/web-client-ui/compare/v1.22.0...v1.22.1) (2026-06-17)
 
 **Note:** Version bump only for package @deephaven/golden-layout
