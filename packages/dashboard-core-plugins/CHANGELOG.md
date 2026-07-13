@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.25.0](https://github.com/deephaven/web-client-ui/compare/v1.24.0...v1.25.0) (2026-07-13)
+
+### Bug Fixes
+
+- DH-22961: Content toolbar buttons overflow ([#2715](https://github.com/deephaven/web-client-ui/issues/2715)) ([10ac768](https://github.com/deephaven/web-client-ui/commit/10ac768b8288676997092e52c3660af16773780c))
+
 ## [1.24.0](https://github.com/deephaven/web-client-ui/compare/v1.23.0...v1.24.0) (2026-07-07)
 
 ### Bug Fixes

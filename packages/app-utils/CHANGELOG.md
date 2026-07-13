@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.25.0](https://github.com/deephaven/web-client-ui/compare/v1.24.0...v1.25.0) (2026-07-13)
+
+### Features
+
+- DH-21344: Dropdown for input table enums ([#2704](https://github.com/deephaven/web-client-ui/issues/2704)) ([57c1b5e](https://github.com/deephaven/web-client-ui/commit/57c1b5e07414ed454fff43d1608ae241c92c1979))
+
 ## [1.24.0](https://github.com/deephaven/web-client-ui/compare/v1.23.0...v1.24.0) (2026-07-07)
 
 ### Bug Fixes

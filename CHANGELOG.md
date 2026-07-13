@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.25.0](https://github.com/deephaven/web-client-ui/compare/v1.24.0...v1.25.0) (2026-07-13)
+
+### Features
+
+- DH-21344: Dropdown for input table enums ([#2704](https://github.com/deephaven/web-client-ui/issues/2704)) ([57c1b5e](https://github.com/deephaven/web-client-ui/commit/57c1b5e07414ed454fff43d1608ae241c92c1979))
+
+### Bug Fixes
+
+- DH-22961: Content toolbar buttons overflow ([#2715](https://github.com/deephaven/web-client-ui/issues/2715)) ([10ac768](https://github.com/deephaven/web-client-ui/commit/10ac768b8288676997092e52c3660af16773780c))
+- DH-23020: Fix input table delete exceeds max stack ([#2716](https://github.com/deephaven/web-client-ui/issues/2716)) ([1d5c9c2](https://github.com/deephaven/web-client-ui/commit/1d5c9c2f7df590d690b3c1c9be6f68c5339476f7))
+- DH-23038: Fix extraneous characters from input table context menu paste ([#2719](https://github.com/deephaven/web-client-ui/issues/2719)) ([84d5d70](https://github.com/deephaven/web-client-ui/commit/84d5d709836e3b4a417668a4f5b780ae6ff351f2))
+
 ## [1.24.0](https://github.com/deephaven/web-client-ui/compare/v1.23.0...v1.24.0) (2026-07-07)
 
 ### Features
