@@ -182,6 +182,7 @@ function ColumnFormatEditor(props: ColumnFormatEditorProps): JSX.Element {
           <ConditionEditor
             dh={dh}
             column={selectedColumn}
+            columns={columns}
             config={conditionConfig}
             onChange={handleConditionChange}
           />

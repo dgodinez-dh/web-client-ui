@@ -225,10 +225,15 @@ export function getStyleDBString(config: BaseFormatConfig): string | undefined {
 
 function getNumberConditionText(config: BaseFormatConfig): string {
   const { leftHandValue, rightHandValue, start, end } = config;
+  // For a column reference, resolve to name (no quoting needed for numbers)
+  const value =
+    typeof rightHandValue === 'object' && rightHandValue !== null
+      ? rightHandValue.name
+      : rightHandValue;
   return getTextForNumberCondition(
     leftHandValue.name,
     config.condition as NumberCondition,
-    rightHandValue,
+    value,
     start,
     end
   );
@@ -236,11 +241,31 @@ function getNumberConditionText(config: BaseFormatConfig): string {
 
 function getStringConditionText(config: BaseFormatConfig): string {
   const { leftHandValue, rightHandValue } = config;
-  return getTextForStringCondition(
-    leftHandValue.name,
-    config.condition as StringCondition,
-    rightHandValue
-  );
+  const columnName = leftHandValue.name;
+  const condition = config.condition as StringCondition;
+  if (typeof rightHandValue === 'object' && rightHandValue !== null) {
+    // Column reference — no string quoting
+    const ref = rightHandValue.name;
+    switch (condition) {
+      case StringCondition.IS_EXACTLY:
+        return `${columnName} == ${ref}`;
+      case StringCondition.IS_NOT_EXACTLY:
+        return `${columnName} != ${ref}`;
+      case StringCondition.CONTAINS:
+        return `${columnName} != null && ${columnName}.contains(${ref})`;
+      case StringCondition.DOES_NOT_CONTAIN:
+        return `${columnName} != null && !${columnName}.contains(${ref})`;
+      case StringCondition.STARTS_WITH:
+        return `${columnName} != null && ${columnName}.startsWith(${ref})`;
+      case StringCondition.ENDS_WITH:
+        return `${columnName} != null && ${columnName}.endsWith(${ref})`;
+      case StringCondition.IS_NULL:
+        return `${columnName} == null`;
+      case StringCondition.IS_NOT_NULL:
+        return `${columnName} != null`;
+    }
+  }
+  return getTextForStringCondition(columnName, condition, rightHandValue);
 }
 
 function getDateConditionText(
@@ -248,12 +273,31 @@ function getDateConditionText(
   config: BaseFormatConfig
 ): string {
   const { leftHandValue, rightHandValue } = config;
-  return getTextForDateCondition(
-    dh,
-    leftHandValue.name,
-    config.condition as DateCondition,
-    rightHandValue
-  );
+  const columnName = leftHandValue.name;
+  const condition = config.condition as DateCondition;
+  if (typeof rightHandValue === 'object' && rightHandValue !== null) {
+    // Column reference — no single-quote wrapping or timezone formatting
+    const ref = rightHandValue.name;
+    switch (condition) {
+      case DateCondition.IS_EXACTLY:
+        return `${columnName} == ${ref}`;
+      case DateCondition.IS_NOT_EXACTLY:
+        return `${columnName} != ${ref}`;
+      case DateCondition.IS_BEFORE:
+        return `${columnName} < ${ref}`;
+      case DateCondition.IS_BEFORE_OR_EQUAL:
+        return `${columnName} <= ${ref}`;
+      case DateCondition.IS_AFTER:
+        return `${columnName} > ${ref}`;
+      case DateCondition.IS_AFTER_OR_EQUAL:
+        return `${columnName} >= ${ref}`;
+      case DateCondition.IS_NULL:
+        return `${columnName} == null`;
+      case DateCondition.IS_NOT_NULL:
+        return `${columnName} != null`;
+    }
+  }
+  return getTextForDateCondition(dh, columnName, condition, rightHandValue);
 }
 
 function getBooleanConditionText(config: BaseFormatConfig): string {
@@ -266,11 +310,23 @@ function getBooleanConditionText(config: BaseFormatConfig): string {
 
 function getCharConditionText(config: BaseFormatConfig): string {
   const { leftHandValue, rightHandValue } = config;
-  return getTextForCharCondition(
-    leftHandValue.name,
-    config.condition as CharCondition,
-    rightHandValue
-  );
+  const columnName = leftHandValue.name;
+  const condition = config.condition as CharCondition;
+  if (typeof rightHandValue === 'object' && rightHandValue !== null) {
+    // Column reference — no single-quote wrapping
+    const ref = rightHandValue.name;
+    switch (condition) {
+      case CharCondition.IS_EQUAL:
+        return `${columnName} == ${ref}`;
+      case CharCondition.IS_NOT_EQUAL:
+        return `${columnName} != ${ref}`;
+      case CharCondition.IS_NULL:
+        return `isNull(${columnName})`;
+      case CharCondition.IS_NOT_NULL:
+        return `!isNull(${columnName})`;
+    }
+  }
+  return getTextForCharCondition(columnName, condition, rightHandValue);
 }
 
 export function getConditionDBString(

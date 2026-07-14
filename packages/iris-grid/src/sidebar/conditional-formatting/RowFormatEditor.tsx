@@ -135,6 +135,7 @@ function RowFormatEditor(props: RowFormatEditorProps): JSX.Element {
         <>
           <ConditionEditor
             column={selectedColumn}
+            columns={columns}
             config={conditionConfig}
             dh={dh}
             onChange={handleConditionChange}
