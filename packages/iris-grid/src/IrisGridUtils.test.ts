@@ -20,6 +20,12 @@ import IrisGridUtils, {
 import type { IrisGridThemeType } from './IrisGridTheme';
 import AggregationOperation from './sidebar/aggregations/AggregationOperation';
 import { type Aggregation } from './sidebar/aggregations/Aggregations';
+import {
+  FormatterType,
+  FormatStyleType,
+  type FormattingRule as SidebarFormattingRule,
+  StringCondition,
+} from './sidebar/conditional-formatting/ConditionalFormattingUtils';
 
 const irisGridUtils = new IrisGridUtils(dh);
 const irisGridTestUtils = new IrisGridTestUtils(dh);
@@ -1137,5 +1143,75 @@ describe('totals config helpers', () => {
       expect(config).not.toBeNull();
       expect(config?.showOnTop).toBe(true);
     });
+  });
+});
+
+describe('migrateConditionalFormattingRule', () => {
+  const column = { name: 'ColA', type: 'int' };
+  const style = { type: FormatStyleType.POSITIVE };
+
+  it('migrates an old CONDITIONAL rule', () => {
+    const oldRule = {
+      type: FormatterType.CONDITIONAL,
+      config: {
+        column,
+        condition: StringCondition.IS_EXACTLY,
+        value: 'foo',
+        style,
+      },
+    } as unknown as SidebarFormattingRule;
+
+    const result = IrisGridUtils.migrateConditionalFormattingRule(oldRule);
+    expect(result.config.leftHandValue).toEqual(column);
+    expect(result.config.formattedColumn).toEqual(column);
+    expect(result.config.rightHandValue).toBe('foo');
+  });
+
+  it('migrates an old ROWS rule without setting formattedColumn', () => {
+    const oldRule = {
+      type: FormatterType.ROWS,
+      config: {
+        column,
+        condition: StringCondition.IS_EXACTLY,
+        value: 'bar',
+        style,
+      },
+    } as unknown as SidebarFormattingRule;
+
+    const result = IrisGridUtils.migrateConditionalFormattingRule(oldRule);
+    expect(result.config.leftHandValue).toEqual(column);
+    expect(result.config.formattedColumn).toBeUndefined();
+    expect(result.config.rightHandValue).toBe('bar');
+  });
+
+  it('migrates an old rule that has no value', () => {
+    const oldRule = {
+      type: FormatterType.CONDITIONAL,
+      config: {
+        column,
+        condition: StringCondition.IS_NULL,
+        style,
+      },
+    } as unknown as SidebarFormattingRule;
+
+    const result = IrisGridUtils.migrateConditionalFormattingRule(oldRule);
+    expect(result.config.leftHandValue).toEqual(column);
+    expect(result.config.rightHandValue).toBeUndefined();
+  });
+
+  it('returns a new-format rule unchanged (same reference)', () => {
+    const newRule: SidebarFormattingRule = {
+      type: FormatterType.CONDITIONAL,
+      config: {
+        leftHandValue: column,
+        formattedColumn: column,
+        condition: StringCondition.IS_EXACTLY,
+        rightHandValue: 'baz',
+        style,
+      },
+    };
+
+    const result = IrisGridUtils.migrateConditionalFormattingRule(newRule);
+    expect(result).toBe(newRule);
   });
 });
