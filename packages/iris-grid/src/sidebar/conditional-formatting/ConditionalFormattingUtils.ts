@@ -229,7 +229,7 @@ export function getStyleDBString(config: BaseFormatConfig): string | undefined {
  * - If a string: wraps it in the given quote character
  * - If undefined: returns undefined
  */
-function formatRHV(
+export function formatRHV(
   value: string | ModelColumn | undefined,
   quote: string
 ): string | undefined {

@@ -16,12 +16,12 @@ import {
   type BaseFormatConfig,
   type FormattingRule,
   FormatterType,
+  formatRHV,
   getBackgroundForStyleConfig,
   getColorForStyleConfig,
   getShortLabelForConditionType,
   NumberCondition,
   StringCondition,
-  DateCondition,
 } from './ConditionalFormattingUtils';
 import { type ColumnName } from '../../CommonTypes';
 
@@ -45,45 +45,40 @@ const DEFAULT_CALLBACK = (): void => undefined;
 
 function getRuleValue(config: BaseFormatConfig): string {
   const { type } = config.leftHandValue;
-  if (TableUtils.isNumberType(type)) {
-    return config.condition === NumberCondition.IS_NULL ||
-      config.condition === NumberCondition.IS_NOT_NULL
-      ? ''
-      : `${config.rightHandValue}`;
-  }
-  if (TableUtils.isCharType(type)) {
-    return config.condition === DateCondition.IS_NULL ||
-      config.condition === DateCondition.IS_NOT_NULL
-      ? ''
-      : `${config.rightHandValue}`;
-  }
-  if (TableUtils.isStringType(type)) {
-    return config.condition === StringCondition.IS_NULL ||
-      config.condition === StringCondition.IS_NOT_NULL
-      ? ''
-      : `"${config.rightHandValue}"`;
-  }
-  if (TableUtils.isDateType(type)) {
-    return config.condition === DateCondition.IS_NULL ||
-      config.condition === DateCondition.IS_NOT_NULL
-      ? ''
-      : `${config.rightHandValue}`;
-  }
-  if (TableUtils.isBooleanType(type)) {
+
+  // Null/not-null conditions and booleans have no value to display
+  if (
+    config.condition === StringCondition.IS_NULL ||
+    config.condition === StringCondition.IS_NOT_NULL ||
+    TableUtils.isBooleanType(type)
+  ) {
     return '';
   }
-  throw new Error(`Invalid column type ${type} in getRuleValue`);
+
+  if (
+    !TableUtils.isNumberType(type) &&
+    !TableUtils.isCharType(type) &&
+    !TableUtils.isStringType(type) &&
+    !TableUtils.isDateType(type)
+  ) {
+    throw new Error(`Invalid column type ${type} in getRuleValue`);
+  }
+
+  const quote = TableUtils.isStringType(type) ? '"' : '';
+  return formatRHV(config.rightHandValue, quote) ?? '';
 }
 
 function getRuleTitle(config: BaseFormatConfig): string {
   const { name: lhvName, type: lhvType } = config.leftHandValue;
+  const fmtName = config.formattedColumn?.name;
+  const prefix = fmtName != null && fmtName !== lhvName ? `${fmtName} = ` : '';
   if (
     TableUtils.isNumberType(lhvType) &&
     config.condition === NumberCondition.IS_BETWEEN
   ) {
-    return `${config.start} < ${lhvName} < ${config.end}`;
+    return `${prefix}${config.start} < ${lhvName} < ${config.end}`;
   }
-  return `${lhvName} ${getShortLabelForConditionType(
+  return `${prefix}${lhvName} ${getShortLabelForConditionType(
     lhvType,
     config.condition
   )} 
