@@ -31,16 +31,16 @@ export type Condition =
 
 export interface BaseFormatConfig {
   /**
-   * The column whose value is evaluated as the left-hand side of the condition.
-   */
-  leftHandValue: ModelColumn;
-  /**
    * The column whose formatting is applied. When set, formatting is applied to
    * this column while the condition is evaluated against `leftHandValue`. When
    * absent, `leftHandValue` (if a ModelColumn) is used as both the condition
    * column and the format target.
    */
   formattedColumn?: ModelColumn;
+  /**
+   * The column whose value is evaluated as the left-hand side of the condition.
+   */
+  leftHandValue: ModelColumn;
   condition: Condition;
   /**
    * The right-hand side of the condition. May be a literal string value or a

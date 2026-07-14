@@ -48,6 +48,7 @@ import {
 import {
   type FormattingRule as SidebarFormattingRule,
   FormatterType,
+  type ModelColumn,
 } from './sidebar/conditional-formatting/ConditionalFormattingUtils';
 import type IrisGridModel from './IrisGridModel';
 import type AdvancedSettingsType from './sidebar/AdvancedSettingsType';
@@ -1367,16 +1368,16 @@ class IrisGridUtils {
   ): SidebarFormattingRule {
     const rawConfig = rule.config as unknown as Record<string, unknown>;
     if ('column' in rawConfig && !('leftHandValue' in rawConfig)) {
-      const column =
-        rawConfig.column as SidebarFormattingRule['config']['leftHandValue'];
+      const { column: oldColumn, value: oldValue, ...restConfig } = rawConfig;
+      const column = oldColumn as ModelColumn;
       return {
         ...rule,
         config: {
-          ...rule.config,
+          ...(restConfig as unknown as SidebarFormattingRule['config']),
           leftHandValue: column,
           formattedColumn:
             rule.type === FormatterType.CONDITIONAL ? column : undefined,
-          rightHandValue: rawConfig.value as string | undefined,
+          rightHandValue: oldValue as string | undefined,
         },
       };
     }

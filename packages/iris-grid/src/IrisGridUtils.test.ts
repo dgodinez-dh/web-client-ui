@@ -1161,10 +1161,16 @@ describe('migrateConditionalFormattingRule', () => {
       },
     } as unknown as SidebarFormattingRule;
 
-    const result = IrisGridUtils.migrateConditionalFormattingRule(oldRule);
-    expect(result.config.leftHandValue).toEqual(column);
-    expect(result.config.formattedColumn).toEqual(column);
-    expect(result.config.rightHandValue).toBe('foo');
+    expect(IrisGridUtils.migrateConditionalFormattingRule(oldRule)).toEqual({
+      type: FormatterType.CONDITIONAL,
+      config: {
+        condition: StringCondition.IS_EXACTLY,
+        style,
+        leftHandValue: column,
+        formattedColumn: column,
+        rightHandValue: 'foo',
+      },
+    });
   });
 
   it('migrates an old ROWS rule without setting formattedColumn', () => {
@@ -1178,10 +1184,16 @@ describe('migrateConditionalFormattingRule', () => {
       },
     } as unknown as SidebarFormattingRule;
 
-    const result = IrisGridUtils.migrateConditionalFormattingRule(oldRule);
-    expect(result.config.leftHandValue).toEqual(column);
-    expect(result.config.formattedColumn).toBeUndefined();
-    expect(result.config.rightHandValue).toBe('bar');
+    expect(IrisGridUtils.migrateConditionalFormattingRule(oldRule)).toEqual({
+      type: FormatterType.ROWS,
+      config: {
+        condition: StringCondition.IS_EXACTLY,
+        style,
+        leftHandValue: column,
+        formattedColumn: undefined,
+        rightHandValue: 'bar',
+      },
+    });
   });
 
   it('migrates an old rule that has no value', () => {
@@ -1194,9 +1206,16 @@ describe('migrateConditionalFormattingRule', () => {
       },
     } as unknown as SidebarFormattingRule;
 
-    const result = IrisGridUtils.migrateConditionalFormattingRule(oldRule);
-    expect(result.config.leftHandValue).toEqual(column);
-    expect(result.config.rightHandValue).toBeUndefined();
+    expect(IrisGridUtils.migrateConditionalFormattingRule(oldRule)).toEqual({
+      type: FormatterType.CONDITIONAL,
+      config: {
+        condition: StringCondition.IS_NULL,
+        style,
+        leftHandValue: column,
+        formattedColumn: column,
+        rightHandValue: undefined,
+      },
+    });
   });
 
   it('returns a new-format rule unchanged (same reference)', () => {
@@ -1213,5 +1232,15 @@ describe('migrateConditionalFormattingRule', () => {
 
     const result = IrisGridUtils.migrateConditionalFormattingRule(newRule);
     expect(result).toBe(newRule);
+    expect(result).toEqual({
+      type: FormatterType.CONDITIONAL,
+      config: {
+        leftHandValue: column,
+        formattedColumn: column,
+        condition: StringCondition.IS_EXACTLY,
+        rightHandValue: 'baz',
+        style,
+      },
+    });
   });
 });
