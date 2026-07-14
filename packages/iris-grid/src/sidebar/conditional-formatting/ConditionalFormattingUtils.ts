@@ -223,17 +223,44 @@ export function getStyleDBString(config: BaseFormatConfig): string | undefined {
   return `bgfg(\`${bg}\`, \`${color}\`)`;
 }
 
+/**
+ * Formats a rightHandValue for use in a condition expression.
+ * - If a ModelColumn: returns the column name as a bare identifier (no quoting)
+ * - If a string: wraps it in the given quote character
+ * - If undefined: returns undefined
+ */
+function formatRHV(
+  value: string | ModelColumn | undefined,
+  quote: string
+): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === 'object') return value.name;
+  return `${quote}${value}${quote}`;
+}
+
+/**
+ * Formats a date rightHandValue for use in a condition expression.
+ * - If a ModelColumn: returns the column name (no quoting or timezone processing)
+ * - If a string: reformats the timezone and wraps in single quotes
+ */
+function formatDateRHV(
+  dh: typeof DhType,
+  value: string | ModelColumn | undefined
+): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === 'object') return value.name;
+  const [dateTimeString, ...rest] = value.split(' ');
+  const tzCode = rest.join(' ');
+  const tz = dh.i18n.TimeZone.getTimeZone(tzCode);
+  return `'${dateTimeString} ${tz.id}'`;
+}
+
 function getNumberConditionText(config: BaseFormatConfig): string {
   const { leftHandValue, rightHandValue, start, end } = config;
-  // For a column reference, resolve to name (no quoting needed for numbers)
-  const value =
-    typeof rightHandValue === 'object' && rightHandValue !== null
-      ? rightHandValue.name
-      : rightHandValue;
   return getTextForNumberCondition(
     leftHandValue.name,
     config.condition as NumberCondition,
-    value,
+    formatRHV(rightHandValue, ''),
     start,
     end
   );
@@ -242,30 +269,25 @@ function getNumberConditionText(config: BaseFormatConfig): string {
 function getStringConditionText(config: BaseFormatConfig): string {
   const { leftHandValue, rightHandValue } = config;
   const columnName = leftHandValue.name;
-  const condition = config.condition as StringCondition;
-  if (typeof rightHandValue === 'object' && rightHandValue !== null) {
-    // Column reference — no string quoting
-    const ref = rightHandValue.name;
-    switch (condition) {
-      case StringCondition.IS_EXACTLY:
-        return `${columnName} == ${ref}`;
-      case StringCondition.IS_NOT_EXACTLY:
-        return `${columnName} != ${ref}`;
-      case StringCondition.CONTAINS:
-        return `${columnName} != null && ${columnName}.contains(${ref})`;
-      case StringCondition.DOES_NOT_CONTAIN:
-        return `${columnName} != null && !${columnName}.contains(${ref})`;
-      case StringCondition.STARTS_WITH:
-        return `${columnName} != null && ${columnName}.startsWith(${ref})`;
-      case StringCondition.ENDS_WITH:
-        return `${columnName} != null && ${columnName}.endsWith(${ref})`;
-      case StringCondition.IS_NULL:
-        return `${columnName} == null`;
-      case StringCondition.IS_NOT_NULL:
-        return `${columnName} != null`;
-    }
+  const rhv = formatRHV(rightHandValue, '"');
+  switch (config.condition as StringCondition) {
+    case StringCondition.IS_EXACTLY:
+      return `${columnName} == ${rhv}`;
+    case StringCondition.IS_NOT_EXACTLY:
+      return `${columnName} != ${rhv}`;
+    case StringCondition.CONTAINS:
+      return `${columnName} != null && ${columnName}.contains(${rhv})`;
+    case StringCondition.DOES_NOT_CONTAIN:
+      return `${columnName} != null && !${columnName}.contains(${rhv})`;
+    case StringCondition.STARTS_WITH:
+      return `${columnName} != null && ${columnName}.startsWith(${rhv})`;
+    case StringCondition.ENDS_WITH:
+      return `${columnName} != null && ${columnName}.endsWith(${rhv})`;
+    case StringCondition.IS_NULL:
+      return `${columnName} == null`;
+    case StringCondition.IS_NOT_NULL:
+      return `${columnName} != null`;
   }
-  return getTextForStringCondition(columnName, condition, rightHandValue);
 }
 
 function getDateConditionText(
@@ -274,30 +296,25 @@ function getDateConditionText(
 ): string {
   const { leftHandValue, rightHandValue } = config;
   const columnName = leftHandValue.name;
-  const condition = config.condition as DateCondition;
-  if (typeof rightHandValue === 'object' && rightHandValue !== null) {
-    // Column reference — no single-quote wrapping or timezone formatting
-    const ref = rightHandValue.name;
-    switch (condition) {
-      case DateCondition.IS_EXACTLY:
-        return `${columnName} == ${ref}`;
-      case DateCondition.IS_NOT_EXACTLY:
-        return `${columnName} != ${ref}`;
-      case DateCondition.IS_BEFORE:
-        return `${columnName} < ${ref}`;
-      case DateCondition.IS_BEFORE_OR_EQUAL:
-        return `${columnName} <= ${ref}`;
-      case DateCondition.IS_AFTER:
-        return `${columnName} > ${ref}`;
-      case DateCondition.IS_AFTER_OR_EQUAL:
-        return `${columnName} >= ${ref}`;
-      case DateCondition.IS_NULL:
-        return `${columnName} == null`;
-      case DateCondition.IS_NOT_NULL:
-        return `${columnName} != null`;
-    }
+  const rhv = formatDateRHV(dh, rightHandValue);
+  switch (config.condition as DateCondition) {
+    case DateCondition.IS_EXACTLY:
+      return `${columnName} == ${rhv}`;
+    case DateCondition.IS_NOT_EXACTLY:
+      return `${columnName} != ${rhv}`;
+    case DateCondition.IS_BEFORE:
+      return `${columnName} < ${rhv}`;
+    case DateCondition.IS_BEFORE_OR_EQUAL:
+      return `${columnName} <= ${rhv}`;
+    case DateCondition.IS_AFTER:
+      return `${columnName} > ${rhv}`;
+    case DateCondition.IS_AFTER_OR_EQUAL:
+      return `${columnName} >= ${rhv}`;
+    case DateCondition.IS_NULL:
+      return `${columnName} == null`;
+    case DateCondition.IS_NOT_NULL:
+      return `${columnName} != null`;
   }
-  return getTextForDateCondition(dh, columnName, condition, rightHandValue);
 }
 
 function getBooleanConditionText(config: BaseFormatConfig): string {
@@ -311,22 +328,17 @@ function getBooleanConditionText(config: BaseFormatConfig): string {
 function getCharConditionText(config: BaseFormatConfig): string {
   const { leftHandValue, rightHandValue } = config;
   const columnName = leftHandValue.name;
-  const condition = config.condition as CharCondition;
-  if (typeof rightHandValue === 'object' && rightHandValue !== null) {
-    // Column reference — no single-quote wrapping
-    const ref = rightHandValue.name;
-    switch (condition) {
-      case CharCondition.IS_EQUAL:
-        return `${columnName} == ${ref}`;
-      case CharCondition.IS_NOT_EQUAL:
-        return `${columnName} != ${ref}`;
-      case CharCondition.IS_NULL:
-        return `isNull(${columnName})`;
-      case CharCondition.IS_NOT_NULL:
-        return `!isNull(${columnName})`;
-    }
+  const rhv = formatRHV(rightHandValue, "'");
+  switch (config.condition as CharCondition) {
+    case CharCondition.IS_EQUAL:
+      return `${columnName} == ${rhv}`;
+    case CharCondition.IS_NOT_EQUAL:
+      return `${columnName} != ${rhv}`;
+    case CharCondition.IS_NULL:
+      return `isNull(${columnName})`;
+    case CharCondition.IS_NOT_NULL:
+      return `!isNull(${columnName})`;
   }
-  return getTextForCharCondition(columnName, condition, rightHandValue);
 }
 
 export function getConditionDBString(
@@ -621,68 +633,6 @@ export function getTextForNumberCondition(
   }
 }
 
-export function getTextForStringCondition(
-  columnName: ColumnName,
-  condition: StringCondition,
-  value: unknown
-): string {
-  switch (condition) {
-    case StringCondition.IS_EXACTLY:
-      return `${columnName} == "${value}"`;
-    case StringCondition.IS_NOT_EXACTLY:
-      return `${columnName} != "${value}"`;
-    case StringCondition.CONTAINS:
-      return `${columnName} != null && ${columnName}.contains("${value}")`;
-    case StringCondition.DOES_NOT_CONTAIN:
-      return `${columnName} != null && !${columnName}.contains("${value}")`;
-    case StringCondition.STARTS_WITH:
-      return `${columnName} != null && ${columnName}.startsWith("${value}")`;
-    case StringCondition.ENDS_WITH:
-      return `${columnName} != null && ${columnName}.endsWith("${value}")`;
-    case StringCondition.IS_NULL:
-      return `${columnName} == null`;
-    case StringCondition.IS_NOT_NULL:
-      return `${columnName} != null`;
-  }
-}
-
-export function getTextForDateCondition(
-  dh: typeof DhType,
-  columnName: ColumnName,
-  condition: DateCondition,
-  value: unknown
-): string {
-  let formattedValue = value;
-  if (typeof value === 'string') {
-    // The date time formatting may return a timezone that is not supported by the backend (e.g. 'EDT' instead of 'ET')
-    // so we need to parse the date time string and reformat it with a supported timezone ID.
-    // Note that we know this will be valid because the input value has already been validated with isDateConditionValid.
-    const [dateTimeString, ...rest] = value.split(' ');
-    const tzCode = rest.join(' ');
-    const tz = dh.i18n.TimeZone.getTimeZone(tzCode);
-    formattedValue = `${dateTimeString} ${tz.id}`;
-  }
-
-  switch (condition) {
-    case DateCondition.IS_EXACTLY:
-      return `${columnName} == '${formattedValue}'`;
-    case DateCondition.IS_NOT_EXACTLY:
-      return `${columnName} != '${formattedValue}'`;
-    case DateCondition.IS_BEFORE:
-      return `${columnName} < '${formattedValue}'`;
-    case DateCondition.IS_BEFORE_OR_EQUAL:
-      return `${columnName} <=  '${formattedValue}'`;
-    case DateCondition.IS_AFTER:
-      return `${columnName} > '${formattedValue}'`;
-    case DateCondition.IS_AFTER_OR_EQUAL:
-      return `${columnName} >=  '${formattedValue}'`;
-    case DateCondition.IS_NULL:
-      return `${columnName} == null`;
-    case DateCondition.IS_NOT_NULL:
-      return `${columnName} != null`;
-  }
-}
-
 export function getTextForBooleanCondition(
   columnName: ColumnName,
   condition: BooleanCondition
@@ -696,23 +646,6 @@ export function getTextForBooleanCondition(
       return `${columnName} == null`;
     case BooleanCondition.IS_NOT_NULL:
       return `${columnName} != null`;
-  }
-}
-
-export function getTextForCharCondition(
-  columnName: ColumnName,
-  condition: CharCondition,
-  value: unknown
-): string {
-  switch (condition) {
-    case CharCondition.IS_EQUAL:
-      return `${columnName} == '${value}'`;
-    case CharCondition.IS_NOT_EQUAL:
-      return `${columnName} != '${value}'`;
-    case CharCondition.IS_NULL:
-      return `isNull(${columnName})`;
-    case CharCondition.IS_NOT_NULL:
-      return `!isNull(${columnName})`;
   }
 }
 
