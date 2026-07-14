@@ -157,7 +157,7 @@ function ColumnFormatEditor(props: ColumnFormatEditorProps): JSX.Element {
   return (
     <div className="conditional-rule-editor form">
       <div className="mb-2">
-        <label className="mb-0">Column to format</label>
+        <label className="mb-0">Column to Format</label>
         <ComboBox
           aria-label="Select column to apply formatting to"
           defaultSelectedKey={selectedFormattedColumn?.name}
