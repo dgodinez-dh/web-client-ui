@@ -44,32 +44,30 @@ export type ConditionalFormattingMenuProps = {
 const DEFAULT_CALLBACK = (): void => undefined;
 
 function getRuleValue(config: BaseFormatConfig): string {
-  const {
-    column: { type },
-  } = config;
+  const { type } = config.leftHandValue;
   if (TableUtils.isNumberType(type)) {
     return config.condition === NumberCondition.IS_NULL ||
       config.condition === NumberCondition.IS_NOT_NULL
       ? ''
-      : `${config.value}`;
+      : `${config.rightHandValue}`;
   }
   if (TableUtils.isCharType(type)) {
     return config.condition === DateCondition.IS_NULL ||
       config.condition === DateCondition.IS_NOT_NULL
       ? ''
-      : `${config.value}`;
+      : `${config.rightHandValue}`;
   }
   if (TableUtils.isStringType(type)) {
     return config.condition === StringCondition.IS_NULL ||
       config.condition === StringCondition.IS_NOT_NULL
       ? ''
-      : `"${config.value}"`;
+      : `"${config.rightHandValue}"`;
   }
   if (TableUtils.isDateType(type)) {
     return config.condition === DateCondition.IS_NULL ||
       config.condition === DateCondition.IS_NOT_NULL
       ? ''
-      : `${config.value}`;
+      : `${config.rightHandValue}`;
   }
   if (TableUtils.isBooleanType(type)) {
     return '';
@@ -78,17 +76,18 @@ function getRuleValue(config: BaseFormatConfig): string {
 }
 
 function getRuleTitle(config: BaseFormatConfig): string {
+  const { name: lhvName, type: lhvType } = config.leftHandValue;
   if (
-    TableUtils.isNumberType(config.column.type) &&
+    TableUtils.isNumberType(lhvType) &&
     config.condition === NumberCondition.IS_BETWEEN
   ) {
-    return `${config.start} < ${config.column.name} < ${config.end}`;
+    return `${config.start} < ${lhvName} < ${config.end}`;
   }
-  return `${config.column.name} ${getShortLabelForConditionType(
-    (config as BaseFormatConfig).column.type,
-    (config as BaseFormatConfig).condition
+  return `${lhvName} ${getShortLabelForConditionType(
+    lhvType,
+    config.condition
   )} 
-    ${getRuleValue(config as BaseFormatConfig)}`;
+    ${getRuleValue(config)}`;
 }
 
 function ConditionalFormattingMenu(

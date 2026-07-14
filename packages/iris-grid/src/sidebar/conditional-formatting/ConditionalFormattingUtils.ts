@@ -15,6 +15,13 @@ export type ModelColumn = {
   type: string;
 };
 
+/**
+ * Gets the column name from a `string | ModelColumn` value.
+ */
+export function getColumnNameFromValue(value: string | ModelColumn): string {
+  return typeof value === 'string' ? value : value.name;
+}
+
 export type Condition =
   | NumberCondition
   | StringCondition
@@ -23,9 +30,23 @@ export type Condition =
   | CharCondition;
 
 export interface BaseFormatConfig {
-  column: ModelColumn;
+  /**
+   * The column whose value is evaluated as the left-hand side of the condition.
+   */
+  leftHandValue: ModelColumn;
+  /**
+   * The column whose formatting is applied. When set, formatting is applied to
+   * this column while the condition is evaluated against `leftHandValue`. When
+   * absent, `leftHandValue` (if a ModelColumn) is used as both the condition
+   * column and the format target.
+   */
+  formattedColumn?: ModelColumn;
   condition: Condition;
-  value?: string;
+  /**
+   * The right-hand side of the condition. May be a literal string value or a
+   * column reference (`ModelColumn`).
+   */
+  rightHandValue?: string | ModelColumn;
   start?: string;
   end?: string;
   style: FormatStyleConfig;
@@ -33,7 +54,7 @@ export interface BaseFormatConfig {
 
 export interface ConditionConfig {
   condition: Condition;
-  value?: string;
+  rightHandValue?: string | ModelColumn;
   start?: string;
   end?: string;
 }
@@ -203,22 +224,22 @@ export function getStyleDBString(config: BaseFormatConfig): string | undefined {
 }
 
 function getNumberConditionText(config: BaseFormatConfig): string {
-  const { column, value, start, end } = config;
+  const { leftHandValue, rightHandValue, start, end } = config;
   return getTextForNumberCondition(
-    column.name,
+    leftHandValue.name,
     config.condition as NumberCondition,
-    value,
+    rightHandValue,
     start,
     end
   );
 }
 
 function getStringConditionText(config: BaseFormatConfig): string {
-  const { column, value } = config;
+  const { leftHandValue, rightHandValue } = config;
   return getTextForStringCondition(
-    column.name,
+    leftHandValue.name,
     config.condition as StringCondition,
-    value
+    rightHandValue
   );
 }
 
@@ -226,29 +247,29 @@ function getDateConditionText(
   dh: typeof DhType,
   config: BaseFormatConfig
 ): string {
-  const { column, value } = config;
+  const { leftHandValue, rightHandValue } = config;
   return getTextForDateCondition(
     dh,
-    column.name,
+    leftHandValue.name,
     config.condition as DateCondition,
-    value
+    rightHandValue
   );
 }
 
 function getBooleanConditionText(config: BaseFormatConfig): string {
-  const { column } = config;
+  const { leftHandValue } = config;
   return getTextForBooleanCondition(
-    column.name,
+    leftHandValue.name,
     config.condition as BooleanCondition
   );
 }
 
 function getCharConditionText(config: BaseFormatConfig): string {
-  const { column, value } = config;
+  const { leftHandValue, rightHandValue } = config;
   return getTextForCharCondition(
-    column.name,
+    leftHandValue.name,
     config.condition as CharCondition,
-    value
+    rightHandValue
   );
 }
 
@@ -256,21 +277,21 @@ export function getConditionDBString(
   dh: typeof DhType,
   config: BaseFormatConfig
 ): string {
-  const { column } = config;
+  const { leftHandValue } = config;
 
-  if (TableUtils.isNumberType(column.type)) {
+  if (TableUtils.isNumberType(leftHandValue.type)) {
     return getNumberConditionText(config);
   }
-  if (TableUtils.isCharType(column.type)) {
+  if (TableUtils.isCharType(leftHandValue.type)) {
     return getCharConditionText(config);
   }
-  if (TableUtils.isStringType(column.type)) {
+  if (TableUtils.isStringType(leftHandValue.type)) {
     return getStringConditionText(config);
   }
-  if (TableUtils.isDateType(column.type)) {
+  if (TableUtils.isDateType(leftHandValue.type)) {
     return getDateConditionText(dh, config);
   }
-  if (TableUtils.isBooleanType(column.type)) {
+  if (TableUtils.isBooleanType(leftHandValue.type)) {
     return getBooleanConditionText(config);
   }
 
@@ -401,8 +422,8 @@ export function getDefaultValueForType(columnType: string): string | undefined {
 }
 
 export function getConditionConfig(config: BaseFormatConfig): ConditionConfig {
-  const { condition, value, start, end } = config;
-  return { condition, value, start, end };
+  const { condition, rightHandValue, start, end } = config;
+  return { condition, rightHandValue, start, end };
 }
 
 export function getDefaultConditionConfigForType(
@@ -410,7 +431,7 @@ export function getDefaultConditionConfigForType(
 ): ConditionConfig {
   return {
     condition: getDefaultConditionForType(type),
-    value: getDefaultValueForType(type),
+    rightHandValue: getDefaultValueForType(type),
     start: undefined,
     end: undefined,
   };
@@ -686,22 +707,46 @@ export function getFormatColumns(
     [string, DhType.CustomColumn]
   >();
   rules.forEach(({ config, type: formatterType }) => {
-    const { column } = config;
+    const { leftHandValue, formattedColumn: formattedColumnConfig } = config;
     // Check both name and type because the type can change
-    const col = columns.find(
-      ({ name, type }) => name === column.name && type === column.type
+    const conditionCol = columns.find(
+      ({ name, type }) =>
+        name === leftHandValue.name && type === leftHandValue.type
     );
-    if (col === undefined) {
+    if (conditionCol === undefined) {
       log.debug(
-        `Column ${column.name}:${column.type} not found. Ignoring format rule.`,
+        `Column ${leftHandValue.name}:${leftHandValue.type} not found. Ignoring format rule.`,
         config
       );
       return;
     }
-    // Stack ternary format conditions by column
+
+    // For CONDITIONAL rules, apply formatting to formattedColumn when set;
+    // otherwise fall back to the condition column.
+    let formatTargetCol = conditionCol;
+    if (
+      formatterType === FormatterType.CONDITIONAL &&
+      formattedColumnConfig != null
+    ) {
+      const found = columns.find(
+        ({ name, type }) =>
+          name === formattedColumnConfig.name &&
+          type === formattedColumnConfig.type
+      );
+      if (found === undefined) {
+        log.debug(
+          `Formatted column ${formattedColumnConfig.name}:${formattedColumnConfig.type} not found. Ignoring format rule.`,
+          config
+        );
+        return;
+      }
+      formatTargetCol = found;
+    }
+
+    // Stack ternary format conditions by formatted column
     const [prevRule, prevFormatColumn] = (formatterType ===
     FormatterType.CONDITIONAL
-      ? columnFormatConfigMap.get(col.name)
+      ? columnFormatConfigMap.get(formatTargetCol.name)
       : rowFormatConfig) ?? ['null', undefined];
     const rule = makeTernaryFormatRule(dh, config, prevRule);
     if (rule === undefined) {
@@ -716,11 +761,11 @@ export function getFormatColumns(
     }
     const formatColumn =
       formatterType === FormatterType.CONDITIONAL
-        ? makeColumnFormatColumn(col, rule)
+        ? makeColumnFormatColumn(formatTargetCol, rule)
         : makeRowFormatColumn(dh, rule);
     result.push(formatColumn);
     if (formatterType === FormatterType.CONDITIONAL) {
-      columnFormatConfigMap.set(col.name, [rule, formatColumn]);
+      columnFormatConfigMap.set(formatTargetCol.name, [rule, formatColumn]);
     } else {
       rowFormatConfig = [rule, formatColumn];
     }

@@ -270,7 +270,11 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
   const selectedColumnType = column.type;
   const [prevColumnType, setPrevColumnType] = useState(selectedColumnType);
   const [selectedCondition, setCondition] = useState(config.condition);
-  const [conditionValue, setValue] = useState(config.value);
+  const [conditionValue, setValue] = useState(
+    typeof config.rightHandValue === 'string'
+      ? config.rightHandValue
+      : undefined
+  );
   const [startValue, setStartValue] = useState(config.start);
   const [endValue, setEndValue] = useState(config.end);
   const [isValid, setIsValid] = useState(true);
@@ -379,7 +383,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       onChange(
         {
           condition: selectedCondition,
-          value: conditionValue,
+          rightHandValue: conditionValue,
           start: startValue,
           end: endValue,
         },
