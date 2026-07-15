@@ -253,10 +253,11 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
         isConditionValid = false;
       } else if (
         TableUtils.isNumberType(column.type) &&
-        typeof conditionValue !== 'object' &&
+        (selectedCondition === NumberCondition.IS_BETWEEN ||
+          typeof conditionValue !== 'object') &&
         !isNumberConditionValid(
           selectedCondition as NumberCondition,
-          conditionValue,
+          typeof conditionValue === 'string' ? conditionValue : undefined,
           startValue,
           endValue
         )
