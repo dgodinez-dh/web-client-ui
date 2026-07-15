@@ -480,9 +480,6 @@ export function getDefaultConditionForType(columnType: string): Condition {
 }
 
 export function getDefaultValueForType(columnType: string): string | undefined {
-  if (TableUtils.isCharType(columnType)) {
-    return '';
-  }
   if (TableUtils.isStringType(columnType)) {
     return '';
   }

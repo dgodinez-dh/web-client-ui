@@ -278,6 +278,18 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
           conditionValue
         );
         isConditionValid = false;
+      } else if (
+        TableUtils.isCharType(column.type) &&
+        typeof conditionValue !== 'object' &&
+        selectedCondition !== CharCondition.IS_NULL &&
+        selectedCondition !== CharCondition.IS_NOT_NULL &&
+        (conditionValue === undefined || conditionValue.length !== 1)
+      ) {
+        log.debug(
+          'Unable to create formatting rule. Char value must be a single character',
+          conditionValue
+        );
+        isConditionValid = false;
       }
 
       setIsValid(isConditionValid);
