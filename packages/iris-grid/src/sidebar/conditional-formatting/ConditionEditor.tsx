@@ -199,7 +199,6 @@ function getBooleanInputs(): null {
 
 function getRightHandValueInput(
   columns: ModelColumn[],
-  selectedCondition: Condition,
   conditionValue: string | ModelColumn | undefined,
   onValueChange: (value: string | ModelColumn | undefined) => void,
   isInvalid: boolean
@@ -211,12 +210,12 @@ function getRightHandValueInput(
       aria-label="Enter or select a value"
       allowsCustomValue
       inputValue={displayValue}
-      UNSAFE_className={classNames({ 'is-invalid': isInvalid })}
+      validationState={isInvalid ? 'invalid' : undefined}
       onInputChange={(text: string) => {
         const matched = columns.find(c => c.name === text);
         onValueChange(matched ?? text);
       }}
-      onSelectionChange={(key: ItemKey | null) => {
+      onChange={(key: ItemKey | null) => {
         if (key == null) return;
         const matched = columns.find(c => c.name === String(key));
         onValueChange(matched ?? String(key));
@@ -408,7 +407,6 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       }
       return getRightHandValueInput(
         columns,
-        selectedCondition,
         conditionValue,
         handleRightHandValueChange,
         hasInvalidValue
@@ -423,7 +421,6 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       }
       return getRightHandValueInput(
         columns,
-        selectedCondition,
         conditionValue,
         handleRightHandValueChange,
         hasInvalidValue
@@ -438,7 +435,6 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       }
       return getRightHandValueInput(
         columns,
-        selectedCondition,
         conditionValue,
         handleRightHandValueChange,
         hasInvalidValue
@@ -453,7 +449,6 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       }
       return getRightHandValueInput(
         columns,
-        selectedCondition,
         conditionValue,
         handleRightHandValueChange,
         hasInvalidValue
