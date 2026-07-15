@@ -328,6 +328,24 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       conditionValue !== undefined &&
       conditionValue !== '';
 
+    // Only offer columns that are type-compatible with the condition column so
+    // the generated expression is valid (e.g. prevent startsWith(intColumn)).
+    // Numbers are cross-compatible (int vs double), text types are
+    // cross-compatible (String vs char), everything else requires the same
+    // normalized type.
+    const compatibleRhvColumns = columns.filter(c => {
+      if (TableUtils.isNumberType(selectedColumnType)) {
+        return TableUtils.isNumberType(c.type);
+      }
+      if (TableUtils.isTextType(selectedColumnType)) {
+        return TableUtils.isTextType(c.type);
+      }
+      return (
+        TableUtils.getNormalizedType(selectedColumnType) ===
+        TableUtils.getNormalizedType(c.type)
+      );
+    });
+
     // IS_BETWEEN uses two separate range inputs
     if (
       TableUtils.isNumberType(selectedColumnType) &&
@@ -364,7 +382,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
 
     // All remaining conditions use the column/value combobox
     return getRightHandValueInput(
-      columns,
+      compatibleRhvColumns,
       conditionValue,
       handleRightHandValueChange,
       hasInvalidValue
