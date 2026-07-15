@@ -292,6 +292,20 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
           conditionValue
         );
         isConditionValid = false;
+      } else if (
+        TableUtils.isBooleanType(column.type) &&
+        typeof conditionValue !== 'object' &&
+        (selectedCondition === BooleanCondition.IS_EQUAL ||
+          selectedCondition === BooleanCondition.IS_NOT_EQUAL) &&
+        conditionValue !== 'true' &&
+        conditionValue !== 'false' &&
+        conditionValue !== 'null'
+      ) {
+        log.debug(
+          'Unable to create formatting rule. Boolean comparison requires a column, true, false, or null',
+          conditionValue
+        );
+        isConditionValid = false;
       }
 
       setIsValid(isConditionValid);
