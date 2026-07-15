@@ -27,6 +27,10 @@ import {
   type Data,
   type PlotData,
   type ModeBarButtonAny,
+  type PlotMouseEvent,
+  type PlotSelectionEvent,
+  type ClickAnnotationEvent,
+  type LegendClickEvent,
 } from 'plotly.js';
 import type { PlotParams } from 'react-plotly.js';
 import { mergeRefs } from '@deephaven/react-hooks';
@@ -67,6 +71,27 @@ interface ChartProps {
 
   /** Called when the settings for the ChartModel are changed */
   onSettingsChanged: (settings: Partial<ChartModelSettings>) => void;
+
+  /**
+   * Optional Plotly event handlers. When provided, they are forwarded to the
+   * underlying Plotly component.
+   */
+  onPlotlyRelayout?: (changes: Record<string, unknown>) => void;
+  onPlotlyClick?: (data: Readonly<PlotMouseEvent>) => void;
+  onPlotlyDoubleClick?: () => void;
+  onPlotlySelected?: (data: Readonly<PlotSelectionEvent> | undefined) => void;
+  onPlotlyDeselect?: () => void;
+  onPlotlyClickAnnotation?: (data: Readonly<ClickAnnotationEvent>) => void;
+  onPlotlyLegendClick?: (data: Readonly<LegendClickEvent>) => boolean;
+  onPlotlyLegendDoubleClick?: (data: Readonly<LegendClickEvent>) => boolean;
+  onPlotlyWebGlContextLost?: () => void;
+
+  /**
+   * Called with the Plotly graph div element once Plotly has initialized, and
+   * with null when it is purged. Consumers can use this to attach imperative
+   * event listeners that Plotly's React props don't expose.
+   */
+  onPlotElementChange?: (element: HTMLElement | null) => void;
 }
 
 // All of the ChartProps have default values except for model in the Chart
@@ -208,11 +233,14 @@ class Chart extends Component<ChartProps, ChartState> {
   }
 
   componentDidUpdate(prevProps: ChartProps): void {
-    const { isActive, model, settings, theme } = this.props;
+    const { isActive, model, settings, theme, onPlotElementChange } =
+      this.props;
     this.updateFormatterSettings(settings);
 
     if (model !== prevProps.model) {
+      prevProps.onPlotElementChange?.(null);
       this.unsubscribe(prevProps.model);
+      onPlotElementChange?.(this.plotElement);
       this.subscribe(model);
     }
 
@@ -257,6 +285,8 @@ class Chart extends Component<ChartProps, ChartState> {
 
   webgl?: boolean;
 
+  plotElement: HTMLElement | null = null;
+
   rect?: DOMRect;
 
   ranges?: unknown;
@@ -275,7 +305,8 @@ class Chart extends Component<ChartProps, ChartState> {
       isDownsampleInProgress: boolean,
       isDownsamplingDisabled: boolean,
       data: Partial<Data>[],
-      error: unknown
+      error: unknown,
+      hasSelectionCallbacks: boolean
     ): Partial<PlotlyConfig> => {
       const customButtons: ModeBarButtonAny[] = [];
       const hasDownsampleError = Boolean(downsamplingError);
@@ -335,17 +366,27 @@ class Chart extends Component<ChartProps, ChartState> {
         ({ type }) => type != null && type.includes('3d')
       );
 
-      const buttons2D = [
-        'zoomIn2d',
-        'zoomOut2d',
-        'autoScale2d',
-        'resetScale2d',
-      ] as const;
-      const buttons3D = [
-        'orbitRotation',
-        'tableRotation',
-        'resetCameraDefault3d',
-      ] as const;
+      // zoom2d and pan2d work for both 2D and 3D charts
+      const interactionButtons: ModeBarButtonAny[] = [
+        'zoom2d',
+        'pan2d',
+        ...(hasSelectionCallbacks && has2D ? ['select2d', 'lasso2d'] : []),
+      ] as ModeBarButtonAny[];
+
+      const dimensionButtons: ModeBarButtonAny[] = [
+        ...(has2D
+          ? ['zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
+          : []),
+        ...(has3D
+          ? ['orbitRotation', 'tableRotation', 'resetCameraDefault3d']
+          : []),
+      ] as ModeBarButtonAny[];
+
+      // Display the mode bar persistently if there's an error or downsampling so user can see progress
+      // Yes, the value is a boolean or the string 'hover': https://github.com/plotly/plotly.js/blob/master/src/plot_api/plot_config.js#L249
+      const alwaysShowModeBar =
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        isDownsampleInProgress || hasDownsampleError || hasError;
 
       return {
         displaylogo: false,
@@ -354,20 +395,14 @@ class Chart extends Component<ChartProps, ChartState> {
         // https://github.com/plotly/react-plotly.js/issues/102
         responsive: true,
 
-        // Display the mode bar if there's an error or downsampling so user can see progress
-        // Yes, the value is a boolean or the string 'hover': https://github.com/plotly/plotly.js/blob/master/src/plot_api/plot_config.js#L249
-        displayModeBar:
-          // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-          isDownsampleInProgress || hasDownsampleError || hasError
-            ? true
-            : ('hover' as const),
+        displayModeBar: alwaysShowModeBar ? true : ('hover' as const),
 
         // Each array gets grouped together in the mode bar
         modeBarButtons: [
           customButtons,
           ['toImage'],
-          ['zoom2d', 'pan2d'], // These work the same for both 2d and 3d
-          [...(has2D ? buttons2D : []), ...(has3D ? buttons3D : [])],
+          interactionButtons,
+          dimensionButtons,
         ],
       };
     }
@@ -398,6 +433,7 @@ class Chart extends Component<ChartProps, ChartState> {
       log.debug2('Delaying subscription until model dimensions are set');
       return;
     }
+
     model.subscribe(this.handleModelEvent);
     this.isSubscribed = true;
   }
@@ -415,6 +451,21 @@ class Chart extends Component<ChartProps, ChartState> {
     if (this.plot.current != null) {
       // TODO: Translate whatever Don was doing in plotting.js in the afterplot here so that area graphs show up properly
     }
+  }
+
+  handlePlotInitialized(_figure: unknown, graphDiv: HTMLElement): void {
+    // Provide the actual Plotly graph div to consumers so they can attach
+    // imperative event listeners (needed for some events that Plotly doesn't
+    // support in react-plotly.js)
+    this.plotElement = graphDiv;
+    const { onPlotElementChange } = this.props;
+    onPlotElementChange?.(graphDiv);
+  }
+
+  handlePlotPurge(): void {
+    this.plotElement = null;
+    const { onPlotElementChange } = this.props;
+    onPlotElementChange?.(null);
   }
 
   handleDownsampleClick(): void {
@@ -571,6 +622,49 @@ class Chart extends Component<ChartProps, ChartState> {
     }
 
     this.updateModelDimensions();
+
+    const { onPlotlyRelayout } = this.props;
+    onPlotlyRelayout?.(changes);
+  }
+
+  handleClick(data: Readonly<PlotMouseEvent>): void {
+    const { onPlotlyClick } = this.props;
+    onPlotlyClick?.(data);
+  }
+
+  handleDoubleClick(): void {
+    const { onPlotlyDoubleClick } = this.props;
+    onPlotlyDoubleClick?.();
+  }
+
+  handleSelected(data: Readonly<PlotSelectionEvent> | undefined): void {
+    const { onPlotlySelected } = this.props;
+    onPlotlySelected?.(data);
+  }
+
+  handleDeselect(): void {
+    const { onPlotlyDeselect } = this.props;
+    onPlotlyDeselect?.();
+  }
+
+  handleClickAnnotation(data: Readonly<ClickAnnotationEvent>): void {
+    const { onPlotlyClickAnnotation } = this.props;
+    onPlotlyClickAnnotation?.(data);
+  }
+
+  handleLegendClick(data: Readonly<LegendClickEvent>): boolean {
+    const { onPlotlyLegendClick } = this.props;
+    return onPlotlyLegendClick?.(data) ?? true;
+  }
+
+  handleLegendDoubleClick(data: Readonly<LegendClickEvent>): boolean {
+    const { onPlotlyLegendDoubleClick } = this.props;
+    return onPlotlyLegendDoubleClick?.(data) ?? true;
+  }
+
+  handleWebGlContextLost(): void {
+    const { onPlotlyWebGlContextLost } = this.props;
+    onPlotlyWebGlContextLost?.();
   }
 
   handleResize(): void {
@@ -737,15 +831,16 @@ class Chart extends Component<ChartProps, ChartState> {
       revision,
       shownBlocker,
     } = this.state;
+    const { model } = this.props;
     const config = this.getCachedConfig(
       downsamplingError,
       isDownsampleFinished,
       isDownsampleInProgress,
       isDownsamplingDisabled,
       data ?? [],
-      error
+      error,
+      model.hasSelectionCallbacks()
     );
-    const { model } = this.props;
     const isPlotShown = data != null && shownBlocker == null;
 
     let errorOverlay: React.ReactNode = null;
@@ -799,9 +894,19 @@ class Chart extends Component<ChartProps, ChartState> {
             config={config}
             onAfterPlot={this.handleAfterPlot}
             onError={log.error}
+            onInitialized={this.handlePlotInitialized}
+            onPurge={this.handlePlotPurge}
             onRelayout={this.handleRelayout}
             onUpdate={this.handlePlotUpdate}
             onRestyle={this.handleRestyle}
+            onClick={this.handleClick}
+            onDoubleClick={this.handleDoubleClick}
+            onSelected={this.handleSelected}
+            onDeselect={this.handleDeselect}
+            onClickAnnotation={this.handleClickAnnotation}
+            onLegendClick={this.handleLegendClick}
+            onLegendDoubleClick={this.handleLegendDoubleClick}
+            onWebGlContextLost={this.handleWebGlContextLost}
             style={{ height: '100%', width: '100%' }}
           />
         )}

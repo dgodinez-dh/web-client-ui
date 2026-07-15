@@ -89,6 +89,15 @@ class ChartModel {
     return new Map();
   }
 
+  /**
+   * Whether this model has selection callbacks (on_selected/on_deselect) registered.
+   * When true, the chart should show box/lasso select mode bar buttons.
+   * @returns True if selection callbacks are registered
+   */
+  hasSelectionCallbacks(): boolean {
+    return false;
+  }
+
   isFilterRequired(): boolean {
     return false;
   }
