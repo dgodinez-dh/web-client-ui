@@ -111,6 +111,8 @@ export enum DateCondition {
 export enum BooleanCondition {
   IS_TRUE = 'is-true',
   IS_FALSE = 'is-false',
+  IS_EQUAL = 'is-equal',
+  IS_NOT_EQUAL = 'is-not-equal',
   IS_NULL = 'is-null',
   IS_NOT_NULL = 'is-not-null',
 }
@@ -318,10 +320,11 @@ function getDateConditionText(
 }
 
 function getBooleanConditionText(config: BaseFormatConfig): string {
-  const { leftHandValue } = config;
+  const { leftHandValue, rightHandValue } = config;
   return getTextForBooleanCondition(
     leftHandValue.name,
-    config.condition as BooleanCondition
+    config.condition as BooleanCondition,
+    rightHandValue
   );
 }
 
@@ -439,6 +442,10 @@ export function getLabelForBooleanCondition(
       return 'is true';
     case BooleanCondition.IS_FALSE:
       return 'is false';
+    case BooleanCondition.IS_EQUAL:
+      return 'is equal to';
+    case BooleanCondition.IS_NOT_EQUAL:
+      return 'is not equal to';
     case BooleanCondition.IS_NULL:
       return 'is null';
     case BooleanCondition.IS_NOT_NULL:
@@ -556,6 +563,10 @@ function getShortLabelForBooleanCondition(condition: BooleanCondition): string {
       return 'is true';
     case BooleanCondition.IS_FALSE:
       return 'is false';
+    case BooleanCondition.IS_EQUAL:
+      return '==';
+    case BooleanCondition.IS_NOT_EQUAL:
+      return '!=';
     case BooleanCondition.IS_NULL:
       return 'is null';
     case BooleanCondition.IS_NOT_NULL:
@@ -632,13 +643,18 @@ export function getTextForNumberCondition(
 
 export function getTextForBooleanCondition(
   columnName: ColumnName,
-  condition: BooleanCondition
+  condition: BooleanCondition,
+  rightHandValue?: string | ModelColumn
 ): string {
   switch (condition) {
     case BooleanCondition.IS_TRUE:
       return `${columnName} == true`;
     case BooleanCondition.IS_FALSE:
       return `${columnName} == false`;
+    case BooleanCondition.IS_EQUAL:
+      return `${columnName} == ${formatRHV(rightHandValue, '') ?? 'null'}`;
+    case BooleanCondition.IS_NOT_EQUAL:
+      return `${columnName} != ${formatRHV(rightHandValue, '') ?? 'null'}`;
     case BooleanCondition.IS_NULL:
       return `${columnName} == null`;
     case BooleanCondition.IS_NOT_NULL:

@@ -85,6 +85,8 @@ const dateConditions = [
 const booleanConditions = [
   BooleanCondition.IS_TRUE,
   BooleanCondition.IS_FALSE,
+  BooleanCondition.IS_EQUAL,
+  BooleanCondition.IS_NOT_EQUAL,
   BooleanCondition.IS_NULL,
   BooleanCondition.IS_NOT_NULL,
 ].map(option => (
@@ -321,12 +323,13 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
     }
 
     // IS_NULL/IS_NOT_NULL enum values are identical across all types ('is-null' /
-    // 'is-not-null'), so checking one covers all. Boolean conditions also never
-    // need a value input.
+    // 'is-not-null'), so checking one enum covers all.
+    // Boolean IS_TRUE/IS_FALSE also never need a value input.
     if (
       selectedCondition === StringCondition.IS_NULL ||
       selectedCondition === StringCondition.IS_NOT_NULL ||
-      TableUtils.isBooleanType(selectedColumnType)
+      selectedCondition === BooleanCondition.IS_TRUE ||
+      selectedCondition === BooleanCondition.IS_FALSE
     ) {
       return null;
     }
