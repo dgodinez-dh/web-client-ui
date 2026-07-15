@@ -331,7 +331,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
     // Only offer columns that are type-compatible with the condition column so
     // the generated expression is valid (e.g. prevent startsWith(intColumn)).
     // Numbers are cross-compatible (int vs double). Everything else requires the same
-    // normalized type. (Note: text types are not compatible (string vs char).)
+    // normalized type. (Note: text types are not compatible (string vs char)
     const compatibleRhvColumns = columns.filter(c => {
       if (TableUtils.isNumberType(selectedColumnType)) {
         return TableUtils.isNumberType(c.type);
