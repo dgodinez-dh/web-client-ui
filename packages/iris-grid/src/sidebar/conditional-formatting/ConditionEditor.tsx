@@ -138,65 +138,6 @@ function isNumberConditionValid(
   return false;
 }
 
-function getNumberInputs(
-  selectedCondition: NumberCondition,
-  handleValueChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
-  handleStartValueChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
-  handleEndValueChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
-  isInvalid: boolean,
-  conditionValue?: string,
-  startValue?: string,
-  endValue?: string
-): JSX.Element | null {
-  switch (selectedCondition) {
-    case NumberCondition.IS_EQUAL:
-    case NumberCondition.IS_NOT_EQUAL:
-    case NumberCondition.GREATER_THAN:
-    case NumberCondition.GREATER_THAN_OR_EQUAL:
-    case NumberCondition.LESS_THAN:
-    case NumberCondition.LESS_THAN_OR_EQUAL:
-      return (
-        <input
-          type="number"
-          className={classNames('form-control', { 'is-invalid': isInvalid })}
-          placeholder="Enter value"
-          value={conditionValue ?? ''}
-          onChange={handleValueChange}
-        />
-      );
-    case NumberCondition.IS_BETWEEN:
-      return (
-        <div className="d-flex flex-row">
-          <input
-            type="number"
-            className={classNames('form-control', 'd-flex', 'mr-2', {
-              'is-invalid': isInvalid,
-            })}
-            placeholder="Start value"
-            value={startValue ?? ''}
-            onChange={handleStartValueChange}
-          />
-          <input
-            type="number"
-            className={classNames('form-control', 'd-flex', {
-              'is-invalid': isInvalid,
-            })}
-            placeholder="End value"
-            value={endValue ?? ''}
-            onChange={handleEndValueChange}
-          />
-        </div>
-      );
-    case NumberCondition.IS_NULL:
-    case NumberCondition.IS_NOT_NULL:
-      return null;
-  }
-}
-
-function getBooleanInputs(): null {
-  return null;
-}
-
 function getRightHandValueInput(
   columns: ModelColumn[],
   conditionValue: string | ModelColumn | undefined,
@@ -272,15 +213,6 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
     log.debug('handleConditionChange', value);
     setCondition(value as Condition);
   }, []);
-
-  const handleValueChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { value } = e.target;
-      log.debug('handleValueChange', value);
-      setValue(value);
-    },
-    []
-  );
 
   const handleRightHandValueChange = useCallback(
     (value: string | ModelColumn | undefined) => {
@@ -376,6 +308,17 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       return null;
     }
 
+    // IS_NULL/IS_NOT_NULL enum values are identical across all types ('is-null' /
+    // 'is-not-null'), so checking one covers all. Boolean conditions also never
+    // need a value input.
+    if (
+      selectedCondition === StringCondition.IS_NULL ||
+      selectedCondition === StringCondition.IS_NOT_NULL ||
+      TableUtils.isBooleanType(selectedColumnType)
+    ) {
+      return null;
+    }
+
     // A ModelColumn rightHandValue is always valid (column-vs-column comparison).
     // For string values, check type-specific validity.
     const rhvIsColumn = typeof conditionValue === 'object';
@@ -385,78 +328,47 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       conditionValue !== undefined &&
       conditionValue !== '';
 
-    if (TableUtils.isNumberType(selectedColumnType)) {
-      if (
-        selectedCondition === NumberCondition.IS_BETWEEN ||
-        selectedCondition === NumberCondition.IS_NULL ||
-        selectedCondition === NumberCondition.IS_NOT_NULL
-      ) {
-        return getNumberInputs(
-          selectedCondition as NumberCondition,
-          handleValueChange,
-          handleStartValueChange,
-          handleEndValueChange,
-          !rhvIsColumn &&
-            !isValid &&
-            ((startValue !== undefined && startValue !== '') ||
-              (endValue !== undefined && endValue !== '')),
-          typeof conditionValue === 'string' ? conditionValue : undefined,
-          startValue,
-          endValue
-        );
-      }
-      return getRightHandValueInput(
-        columns,
-        conditionValue,
-        handleRightHandValueChange,
-        hasInvalidValue
+    // IS_BETWEEN uses two separate range inputs
+    if (
+      TableUtils.isNumberType(selectedColumnType) &&
+      selectedCondition === NumberCondition.IS_BETWEEN
+    ) {
+      const isInvalid =
+        !rhvIsColumn &&
+        !isValid &&
+        ((startValue !== undefined && startValue !== '') ||
+          (endValue !== undefined && endValue !== ''));
+      return (
+        <div className="d-flex flex-row">
+          <input
+            type="number"
+            className={classNames('form-control', 'd-flex', 'mr-2', {
+              'is-invalid': isInvalid,
+            })}
+            placeholder="Start value"
+            value={startValue ?? ''}
+            onChange={handleStartValueChange}
+          />
+          <input
+            type="number"
+            className={classNames('form-control', 'd-flex', {
+              'is-invalid': isInvalid,
+            })}
+            placeholder="End value"
+            value={endValue ?? ''}
+            onChange={handleEndValueChange}
+          />
+        </div>
       );
     }
-    if (TableUtils.isCharType(selectedColumnType)) {
-      if (
-        selectedCondition === CharCondition.IS_NULL ||
-        selectedCondition === CharCondition.IS_NOT_NULL
-      ) {
-        return null;
-      }
-      return getRightHandValueInput(
-        columns,
-        conditionValue,
-        handleRightHandValueChange,
-        hasInvalidValue
-      );
-    }
-    if (TableUtils.isStringType(selectedColumnType)) {
-      if (
-        selectedCondition === StringCondition.IS_NULL ||
-        selectedCondition === StringCondition.IS_NOT_NULL
-      ) {
-        return null;
-      }
-      return getRightHandValueInput(
-        columns,
-        conditionValue,
-        handleRightHandValueChange,
-        hasInvalidValue
-      );
-    }
-    if (TableUtils.isDateType(selectedColumnType)) {
-      if (
-        selectedCondition === DateCondition.IS_NULL ||
-        selectedCondition === DateCondition.IS_NOT_NULL
-      ) {
-        return null;
-      }
-      return getRightHandValueInput(
-        columns,
-        conditionValue,
-        handleRightHandValueChange,
-        hasInvalidValue
-      );
-    }
-    if (TableUtils.isBooleanType(selectedColumnType)) {
-      return getBooleanInputs();
-    }
+
+    // All remaining conditions use the column/value combobox
+    return getRightHandValueInput(
+      columns,
+      conditionValue,
+      handleRightHandValueChange,
+      hasInvalidValue
+    );
   }, [
     columns,
     selectedColumnType,
@@ -465,7 +377,6 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
     startValue,
     endValue,
     isValid,
-    handleValueChange,
     handleRightHandValueChange,
     handleStartValueChange,
     handleEndValueChange,
