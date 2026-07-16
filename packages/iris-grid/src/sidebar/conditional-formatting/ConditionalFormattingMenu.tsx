@@ -70,8 +70,11 @@ function getRuleValue(config: BaseFormatConfig): string {
 
 function getRuleTitle(config: BaseFormatConfig): string {
   const { name: lhvName, type: lhvType } = config.leftHandValue;
-  const fmtName = config.formattedColumns[0]?.name;
-  const prefix = fmtName != null && fmtName !== lhvName ? `${fmtName} = ` : '';
+  const { formattedColumns } = config;
+  const prefix =
+    formattedColumns.length > 0
+      ? `[${formattedColumns.map(c => c.name).join(', ')}] = `
+      : '';
   if (
     TableUtils.isNumberType(lhvType) &&
     config.condition === NumberCondition.IS_BETWEEN
