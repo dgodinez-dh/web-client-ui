@@ -188,7 +188,7 @@ function MultiColumnFormatEditor(
             <div className="flex-grow-1">
               <ComboBox
                 aria-label="Select column to apply formatting to"
-                defaultSelectedKey={col.name}
+                selectedKey={col.name}
                 onChange={value => handleFormattedColumnChange(index, value)}
               >
                 {columnNames}
