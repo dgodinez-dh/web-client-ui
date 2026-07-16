@@ -184,18 +184,20 @@ function MultiColumnFormatEditor(
         <label className="mb-0">Apply to Columns</label>
         {selectedFormattedColumns.map((col, index) => (
           // eslint-disable-next-line react/no-array-index-key
-          <div key={index} className="form-inline">
-            <ComboBox
-              aria-label="Select column to apply formatting to"
-              defaultSelectedKey={col.name}
-              onChange={value => handleFormattedColumnChange(index, value)}
-            >
-              {columnNames}
-            </ComboBox>
-            {index > 0 && (
+          <div key={index} className="d-flex align-items-center mb-2">
+            <div className="flex-grow-1">
+              <ComboBox
+                aria-label="Select column to apply formatting to"
+                defaultSelectedKey={col.name}
+                onChange={value => handleFormattedColumnChange(index, value)}
+              >
+                {columnNames}
+              </ComboBox>
+            </div>
+            {selectedFormattedColumns.length > 1 && (
               <Button
                 kind="ghost"
-                className="ml-1 px-2"
+                className="ml-1 px-2 flex-shrink-0"
                 onClick={() => handleRemoveFormattedColumn(index)}
                 icon={vsTrash}
                 tooltip="Remove column"
