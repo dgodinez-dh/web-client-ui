@@ -14,13 +14,16 @@ function FormatColumnsWhereIcon(
       {...props}
     >
       <rect width="48" height="48" fill="none" />
-      {/* Left column — rows 1, 3, 5 formatted */}
-      <rect x="4" y="10" width="16" height="4" fill="#9FDE70" />
-      <rect x="4" y="22" width="16" height="4" fill="#FFD95C" />
-      <rect x="4" y="34" width="16" height="4" fill="#9FDE70" />
-      {/* Right column — rows 2, 4 formatted */}
-      <rect x="28" y="16" width="16" height="4" fill="#9FDE70" />
-      <rect x="28" y="28" width="16" height="4" fill="#FFD95C" />
+      {/* Left column */}
+      <rect x="5" y="10" width="15" height="4" fill="#9FDE70" />
+      <rect x="5" y="22" width="15" height="4" fill="#9FDE70" />
+      <rect x="5" y="28" width="15" height="4" fill="#FFD95C" />
+      <rect x="5" y="34" width="15" height="4" fill="#9FDE70" />
+      {/* Right column */}
+      <rect x="27" y="10" width="15" height="4" fill="#9FDE70" />
+      <rect x="27" y="22" width="15" height="4" fill="#9FDE70" />
+      <rect x="27" y="28" width="15" height="4" fill="#FFD95C" />
+      <rect x="27" y="34" width="15" height="4" fill="#9FDE70" />
     </svg>
   );
 }
