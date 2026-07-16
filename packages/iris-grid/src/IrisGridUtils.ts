@@ -1360,7 +1360,7 @@ class IrisGridUtils {
   /**
    * Migrates a single conditional formatting rule saved in the old format
    * (`column`/`value`) to the current format (`leftHandValue`/`rightHandValue`/
-   * `formattedColumn`). Rules already in the current format are returned
+   * `formattedColumns`). Rules already in the current format are returned
    * unchanged.
    */
   static migrateConditionalFormattingRule(
@@ -1375,8 +1375,8 @@ class IrisGridUtils {
         config: {
           ...(restConfig as unknown as SidebarFormattingRule['config']),
           leftHandValue: column,
-          formattedColumn:
-            rule.type === FormatterType.CONDITIONAL ? column : undefined,
+          formattedColumns:
+            rule.type === FormatterType.CONDITIONAL ? [column] : [],
           rightHandValue: oldValue as string | undefined,
         },
       };

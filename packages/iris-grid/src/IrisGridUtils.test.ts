@@ -1167,13 +1167,13 @@ describe('migrateConditionalFormattingRule', () => {
         condition: StringCondition.IS_EXACTLY,
         style,
         leftHandValue: column,
-        formattedColumn: column,
+        formattedColumns: [column],
         rightHandValue: 'foo',
       },
     });
   });
 
-  it('migrates an old ROWS rule without setting formattedColumn', () => {
+  it('migrates an old ROWS rule setting formattedColumns to empty array', () => {
     const oldRule = {
       type: FormatterType.ROWS,
       config: {
@@ -1190,7 +1190,7 @@ describe('migrateConditionalFormattingRule', () => {
         condition: StringCondition.IS_EXACTLY,
         style,
         leftHandValue: column,
-        formattedColumn: undefined,
+        formattedColumns: [],
         rightHandValue: 'bar',
       },
     });
@@ -1212,7 +1212,7 @@ describe('migrateConditionalFormattingRule', () => {
         condition: StringCondition.IS_NULL,
         style,
         leftHandValue: column,
-        formattedColumn: column,
+        formattedColumns: [column],
         rightHandValue: undefined,
       },
     });
@@ -1223,7 +1223,7 @@ describe('migrateConditionalFormattingRule', () => {
       type: FormatterType.CONDITIONAL,
       config: {
         leftHandValue: column,
-        formattedColumn: column,
+        formattedColumns: [column],
         condition: StringCondition.IS_EXACTLY,
         rightHandValue: 'baz',
         style,
@@ -1236,7 +1236,7 @@ describe('migrateConditionalFormattingRule', () => {
       type: FormatterType.CONDITIONAL,
       config: {
         leftHandValue: column,
-        formattedColumn: column,
+        formattedColumns: [column],
         condition: StringCondition.IS_EXACTLY,
         rightHandValue: 'baz',
         style,

@@ -70,7 +70,7 @@ function getRuleValue(config: BaseFormatConfig): string {
 
 function getRuleTitle(config: BaseFormatConfig): string {
   const { name: lhvName, type: lhvType } = config.leftHandValue;
-  const fmtName = config.formattedColumn?.name;
+  const fmtName = config.formattedColumns[0]?.name;
   const prefix = fmtName != null && fmtName !== lhvName ? `${fmtName} = ` : '';
   if (
     TableUtils.isNumberType(lhvType) &&

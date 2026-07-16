@@ -32,6 +32,7 @@ function makeDefaultConfig(columns: ModelColumn[]): BaseFormatConfig {
   const leftHandValue = { type, name };
   const config = {
     leftHandValue,
+    formattedColumns: [{ type, name }] as ModelColumn[],
     style: getDefaultStyleConfig(),
     ...getDefaultConditionConfigForType(type),
   };
@@ -113,7 +114,7 @@ function ColumnFormatEditor(props: ColumnFormatEditorProps): JSX.Element {
       onChange(
         {
           leftHandValue,
-          formattedColumn: leftHandValue,
+          formattedColumns: [leftHandValue],
           style: selectedStyle,
           ...conditionConfig,
         },

@@ -32,6 +32,7 @@ function makeDefaultConfig(columns: ModelColumn[]): BaseFormatConfig {
   const leftHandValue = { type, name };
   const config = {
     leftHandValue,
+    formattedColumns: [] as ModelColumn[],
     style: getDefaultStyleConfig(),
     ...getDefaultConditionConfigForType(type),
   };
@@ -56,7 +57,7 @@ function MultiColumnFormatEditor(
     ) ?? columns[0]
   );
   const [selectedFormattedColumn, setFormattedColumn] = useState(() => {
-    const matchCol = config.formattedColumn ?? config.leftHandValue;
+    const matchCol = config.formattedColumns[0] ?? config.leftHandValue;
     return (
       columns.find(c => c.name === matchCol.name && c.type === matchCol.type) ??
       columns[0]
@@ -134,10 +135,12 @@ function MultiColumnFormatEditor(
       onChange(
         {
           leftHandValue,
-          formattedColumn: {
-            type: selectedFormattedColumn.type,
-            name: selectedFormattedColumn.name,
-          },
+          formattedColumns: [
+            {
+              type: selectedFormattedColumn.type,
+              name: selectedFormattedColumn.name,
+            },
+          ],
           style: selectedStyle,
           ...conditionConfig,
         },

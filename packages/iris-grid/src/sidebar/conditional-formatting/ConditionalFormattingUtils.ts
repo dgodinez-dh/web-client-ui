@@ -31,12 +31,12 @@ export type Condition =
 
 export interface BaseFormatConfig {
   /**
-   * The column whose formatting is applied. When set, formatting is applied to
-   * this column while the condition is evaluated against `leftHandValue`. When
-   * absent, `leftHandValue` (if a ModelColumn) is used as both the condition
-   * column and the format target.
+   * The columns whose formatting is applied. When set, formatting is applied to
+   * each column while the condition is evaluated against `leftHandValue`. When
+   * absent, `leftHandValue` is used as both the condition column and the format
+   * target.
    */
-  formattedColumn?: ModelColumn;
+  formattedColumns: ModelColumn[];
   /**
    * The column whose value is evaluated as the left-hand side of the condition.
    */
@@ -710,7 +710,11 @@ export function getFormatColumns(
     [string, DhType.CustomColumn]
   >();
   rules.forEach(({ config, type: formatterType }) => {
-    const { leftHandValue, formattedColumn: formattedColumnConfig } = config;
+    const { leftHandValue, formattedColumns } = config;
+    const isColumnType =
+      formatterType === FormatterType.CONDITIONAL ||
+      formatterType === FormatterType.COLUMNS;
+
     // Check both name and type because the type can change
     const conditionCol = columns.find(
       ({ name, type }) =>
@@ -724,59 +728,54 @@ export function getFormatColumns(
       return;
     }
 
-    // For CONDITIONAL and COLUMNS rules, apply formatting to formattedColumn when set;
-    // otherwise fall back to the condition column.
-    let formatTargetCol = conditionCol;
-    if (
-      (formatterType === FormatterType.CONDITIONAL ||
-        formatterType === FormatterType.COLUMNS) &&
-      formattedColumnConfig != null
-    ) {
-      const found = columns.find(
-        ({ name, type }) =>
-          name === formattedColumnConfig.name &&
-          type === formattedColumnConfig.type
-      );
-      if (found === undefined) {
-        log.debug(
-          `Formatted column ${formattedColumnConfig.name}:${formattedColumnConfig.type} not found. Ignoring format rule.`,
-          config
+    // For CONDITIONAL and COLUMNS rules, format each column in formattedColumns.
+    // When formattedColumns is absent or empty, fall back to the condition column
+    // by using [null] to indicate that the condition column should be used as the format target.
+    const targetColConfigs: (ModelColumn | null)[] =
+      isColumnType && formattedColumns.length > 0 ? formattedColumns : [null];
+
+    targetColConfigs.forEach(targetColConfig => {
+      let formatTargetCol = conditionCol;
+      if (isColumnType && targetColConfig !== null) {
+        const found = columns.find(
+          ({ name, type }) =>
+            name === targetColConfig.name && type === targetColConfig.type
         );
+        if (found === undefined) {
+          log.debug(
+            `Formatted column ${targetColConfig.name}:${targetColConfig.type} not found. Ignoring format rule.`,
+            config
+          );
+          return;
+        }
+        formatTargetCol = found;
+      }
+
+      // Stack ternary format conditions by formatted column
+      const [prevRule, prevFormatColumn] = (isColumnType
+        ? columnFormatConfigMap.get(formatTargetCol.name)
+        : rowFormatConfig) ?? ['null', undefined];
+      const rule = makeTernaryFormatRule(dh, config, prevRule);
+      if (rule === undefined) {
+        log.debug(`Ignoring format rule.`, config);
         return;
       }
-      formatTargetCol = found;
-    }
-
-    // Stack ternary format conditions by formatted column
-    const [prevRule, prevFormatColumn] = (formatterType ===
-      FormatterType.CONDITIONAL || formatterType === FormatterType.COLUMNS
-      ? columnFormatConfigMap.get(formatTargetCol.name)
-      : rowFormatConfig) ?? ['null', undefined];
-    const rule = makeTernaryFormatRule(dh, config, prevRule);
-    if (rule === undefined) {
-      log.debug(`Ignoring format rule.`, config);
-      return;
-    }
-    // Replace existing formatColumn with the new stacked format
-    const index =
-      prevFormatColumn === undefined ? -1 : result.indexOf(prevFormatColumn);
-    if (index > -1) {
-      result.splice(index, 1);
-    }
-    const formatColumn =
-      formatterType === FormatterType.CONDITIONAL ||
-      formatterType === FormatterType.COLUMNS
+      // Replace existing formatColumn with the new stacked format
+      const index =
+        prevFormatColumn === undefined ? -1 : result.indexOf(prevFormatColumn);
+      if (index > -1) {
+        result.splice(index, 1);
+      }
+      const formatColumn = isColumnType
         ? makeColumnFormatColumn(formatTargetCol, rule)
         : makeRowFormatColumn(dh, rule);
-    result.push(formatColumn);
-    if (
-      formatterType === FormatterType.CONDITIONAL ||
-      formatterType === FormatterType.COLUMNS
-    ) {
-      columnFormatConfigMap.set(formatTargetCol.name, [rule, formatColumn]);
-    } else {
-      rowFormatConfig = [rule, formatColumn];
-    }
+      result.push(formatColumn);
+      if (isColumnType) {
+        columnFormatConfigMap.set(formatTargetCol.name, [rule, formatColumn]);
+      } else {
+        rowFormatConfig = [rule, formatColumn];
+      }
+    });
   });
 
   return result;
