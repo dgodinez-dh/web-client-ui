@@ -724,11 +724,12 @@ export function getFormatColumns(
       return;
     }
 
-    // For CONDITIONAL rules, apply formatting to formattedColumn when set;
+    // For CONDITIONAL and COLUMNS rules, apply formatting to formattedColumn when set;
     // otherwise fall back to the condition column.
     let formatTargetCol = conditionCol;
     if (
-      formatterType === FormatterType.CONDITIONAL &&
+      (formatterType === FormatterType.CONDITIONAL ||
+        formatterType === FormatterType.COLUMNS) &&
       formattedColumnConfig != null
     ) {
       const found = columns.find(

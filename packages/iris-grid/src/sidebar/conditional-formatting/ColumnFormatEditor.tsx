@@ -53,13 +53,6 @@ function ColumnFormatEditor(props: ColumnFormatEditorProps): JSX.Element {
         c.type === config.leftHandValue.type
     ) ?? columns[0]
   );
-  const [selectedFormattedColumn, setFormattedColumn] = useState(() => {
-    const matchCol = config.formattedColumn ?? config.leftHandValue;
-    return (
-      columns.find(c => c.name === matchCol.name && c.type === matchCol.type) ??
-      columns[0]
-    );
-  });
   const [conditionConfig, setConditionConfig] = useState(
     getConditionConfig(config)
   );
@@ -80,18 +73,6 @@ function ColumnFormatEditor(props: ColumnFormatEditorProps): JSX.Element {
       }
     },
     [columns, selectedColumn]
-  );
-
-  const handleFormattedColumnChange = useCallback(
-    (value: ItemKey | null) => {
-      const newColumn = columns.find(({ name }) => name === value);
-      if (newColumn !== undefined) {
-        setFormattedColumn(newColumn);
-      } else {
-        log.error(`Column ${value} not found.`);
-      }
-    },
-    [columns]
   );
 
   const handleConditionChange = useCallback(
@@ -132,40 +113,20 @@ function ColumnFormatEditor(props: ColumnFormatEditorProps): JSX.Element {
       onChange(
         {
           leftHandValue,
-          formattedColumn: {
-            type: selectedFormattedColumn.type,
-            name: selectedFormattedColumn.name,
-          },
+          formattedColumn: leftHandValue,
           style: selectedStyle,
           ...conditionConfig,
         },
         isValid
       );
     },
-    [
-      onChange,
-      selectedColumn,
-      selectedFormattedColumn,
-      selectedStyle,
-      conditionConfig,
-      conditionValid,
-    ]
+    [onChange, selectedColumn, selectedStyle, conditionConfig, conditionValid]
   );
 
   const columnNames = useMemo(() => columns.map(({ name }) => name), [columns]);
 
   return (
     <div className="conditional-rule-editor form">
-      <div className="mb-2">
-        <label className="mb-0">Column to Format</label>
-        <ComboBox
-          aria-label="Select column to apply formatting to"
-          defaultSelectedKey={selectedFormattedColumn?.name}
-          onChange={handleFormattedColumnChange}
-        >
-          {columnNames}
-        </ComboBox>
-      </div>
       <div className="mb-2">
         <label className="mb-0">Format Cell If</label>
         <ComboBox
