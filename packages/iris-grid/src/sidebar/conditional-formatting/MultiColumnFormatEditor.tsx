@@ -93,7 +93,12 @@ function MultiColumnFormatEditor(
   );
 
   const handleAddFormattedColumn = useCallback(() => {
-    setFormattedColumns(prev => [...prev, columns[0]]);
+    setFormattedColumns(prev => {
+      const usedNames = new Set(prev.map(c => c.name));
+      const nextColumn =
+        columns.find(c => !usedNames.has(c.name)) ?? columns[0];
+      return [...prev, nextColumn];
+    });
   }, [columns]);
 
   const handleRemoveFormattedColumn = useCallback((index: number) => {
@@ -178,6 +183,21 @@ function MultiColumnFormatEditor(
 
   const columnNames = useMemo(() => columns.map(({ name }) => name), [columns]);
 
+  const perComboBoxColumnNames = useMemo(
+    () =>
+      selectedFormattedColumns.map((col, index) => {
+        const otherSelected = new Set(
+          selectedFormattedColumns
+            .filter((_, i) => i !== index)
+            .map(c => c.name)
+        );
+        return columnNames.filter(
+          name => name === col.name || !otherSelected.has(name)
+        );
+      }),
+    [columnNames, selectedFormattedColumns]
+  );
+
   return (
     <div className="conditional-rule-editor form">
       <div className="mb-2">
@@ -191,7 +211,7 @@ function MultiColumnFormatEditor(
                 selectedKey={col.name}
                 onChange={value => handleFormattedColumnChange(index, value)}
               >
-                {columnNames}
+                {perComboBoxColumnNames[index]}
               </ComboBox>
             </div>
             {selectedFormattedColumns.length > 1 && (
