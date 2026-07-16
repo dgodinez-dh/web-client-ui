@@ -156,12 +156,18 @@ function getRightHandValueInput(
       validationState={isInvalid ? 'invalid' : undefined}
       onInputChange={(text: string) => {
         const matched = columns.find(c => c.name === text);
-        onValueChange(matched ?? text);
+        onValueChange(
+          matched != null ? { name: matched.name, type: matched.type } : text
+        );
       }}
       onChange={(key: ItemKey | null) => {
         if (key == null) return;
         const matched = columns.find(c => c.name === String(key));
-        onValueChange(matched ?? String(key));
+        onValueChange(
+          matched != null
+            ? { name: matched.name, type: matched.type }
+            : String(key)
+        );
       }}
     >
       {columns.map(c => c.name)}
