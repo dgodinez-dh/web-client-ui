@@ -48,6 +48,7 @@ describe('getFormatColumns', () => {
           type: columnType,
           name: columnName,
         },
+        formattedColumns: [],
         condition,
         style: {
           type: styleType,
@@ -249,6 +250,7 @@ describe('getConditionDBString', () => {
   ): BaseFormatConfig {
     return {
       leftHandValue: { name: lhv, type },
+      formattedColumns: [],
       condition,
       rightHandValue,
       style,
