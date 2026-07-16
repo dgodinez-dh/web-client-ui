@@ -16,6 +16,7 @@ import {
   type BaseFormatConfig,
   type FormattingRule,
   FormatterType,
+  BooleanCondition,
   formatRHV,
   getBackgroundForStyleConfig,
   getColorForStyleConfig,
@@ -46,11 +47,19 @@ const DEFAULT_CALLBACK = (): void => undefined;
 function getRuleValue(config: BaseFormatConfig): string {
   const { type } = config.leftHandValue;
 
-  // Null/not-null conditions and booleans have no value to display
+  // Null/not-null conditions have no value to display
   if (
     config.condition === StringCondition.IS_NULL ||
-    config.condition === StringCondition.IS_NOT_NULL ||
-    TableUtils.isBooleanType(type)
+    config.condition === StringCondition.IS_NOT_NULL
+  ) {
+    return '';
+  }
+
+  // Boolean IS_TRUE/IS_FALSE have no RHV; IS_EQUAL/IS_NOT_EQUAL do
+  if (
+    TableUtils.isBooleanType(type) &&
+    (config.condition === BooleanCondition.IS_TRUE ||
+      config.condition === BooleanCondition.IS_FALSE)
   ) {
     return '';
   }
@@ -59,7 +68,8 @@ function getRuleValue(config: BaseFormatConfig): string {
     !TableUtils.isNumberType(type) &&
     !TableUtils.isCharType(type) &&
     !TableUtils.isStringType(type) &&
-    !TableUtils.isDateType(type)
+    !TableUtils.isDateType(type) &&
+    !TableUtils.isBooleanType(type)
   ) {
     throw new Error(`Invalid column type ${type} in getRuleValue`);
   }
