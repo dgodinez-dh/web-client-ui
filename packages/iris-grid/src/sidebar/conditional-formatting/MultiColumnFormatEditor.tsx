@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Log from '@deephaven/log';
-import { ComboBox, type ItemKey } from '@deephaven/components';
+import { Button, ComboBox, type ItemKey } from '@deephaven/components';
+import { dhNewCircleLargeFilled, vsTrash } from '@deephaven/icons';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import {
   type BaseFormatConfig,
@@ -56,11 +57,17 @@ function MultiColumnFormatEditor(
         c.type === config.leftHandValue.type
     ) ?? columns[0]
   );
-  const [selectedFormattedColumn, setFormattedColumn] = useState(() => {
-    const matchCol = config.formattedColumns[0] ?? config.leftHandValue;
-    return (
-      columns.find(c => c.name === matchCol.name && c.type === matchCol.type) ??
-      columns[0]
+  const [selectedFormattedColumns, setFormattedColumns] = useState<
+    ModelColumn[]
+  >(() => {
+    const initial =
+      config.formattedColumns.length > 0
+        ? config.formattedColumns
+        : [config.leftHandValue];
+    return initial.map(
+      col =>
+        columns.find(c => c.name === col.name && c.type === col.type) ??
+        columns[0]
     );
   });
   const [conditionConfig, setConditionConfig] = useState(
@@ -85,11 +92,23 @@ function MultiColumnFormatEditor(
     [columns, selectedColumn]
   );
 
+  const handleAddFormattedColumn = useCallback(() => {
+    setFormattedColumns(prev => [...prev, columns[0]]);
+  }, [columns]);
+
+  const handleRemoveFormattedColumn = useCallback((index: number) => {
+    setFormattedColumns(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
   const handleFormattedColumnChange = useCallback(
-    (value: ItemKey | null) => {
+    (index: number, value: ItemKey | null) => {
       const newColumn = columns.find(({ name }) => name === value);
       if (newColumn !== undefined) {
-        setFormattedColumn(newColumn);
+        setFormattedColumns(prev => {
+          const next = [...prev];
+          next[index] = newColumn;
+          return next;
+        });
       } else {
         log.error(`Column ${value} not found.`);
       }
@@ -135,12 +154,12 @@ function MultiColumnFormatEditor(
       onChange(
         {
           leftHandValue,
-          formattedColumns: [
-            {
-              type: selectedFormattedColumn.type,
-              name: selectedFormattedColumn.name,
-            },
-          ],
+          formattedColumns: selectedFormattedColumns.map(
+            ({ type: colType, name: colName }) => ({
+              type: colType,
+              name: colName,
+            })
+          ),
           style: selectedStyle,
           ...conditionConfig,
         },
@@ -150,7 +169,7 @@ function MultiColumnFormatEditor(
     [
       onChange,
       selectedColumn,
-      selectedFormattedColumn,
+      selectedFormattedColumns,
       selectedStyle,
       conditionConfig,
       conditionValid,
@@ -162,14 +181,36 @@ function MultiColumnFormatEditor(
   return (
     <div className="conditional-rule-editor form">
       <div className="mb-2">
-        <label className="mb-0">Column to Format</label>
-        <ComboBox
-          aria-label="Select column to apply formatting to"
-          defaultSelectedKey={selectedFormattedColumn?.name}
-          onChange={handleFormattedColumnChange}
+        <label className="mb-0">Apply to Columns</label>
+        {selectedFormattedColumns.map((col, index) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <div key={index} className="form-inline">
+            <ComboBox
+              aria-label="Select column to apply formatting to"
+              defaultSelectedKey={col.name}
+              onChange={value => handleFormattedColumnChange(index, value)}
+            >
+              {columnNames}
+            </ComboBox>
+            {index > 0 && (
+              <Button
+                kind="ghost"
+                className="ml-1 px-2"
+                onClick={() => handleRemoveFormattedColumn(index)}
+                icon={vsTrash}
+                tooltip="Remove column"
+              />
+            )}
+          </div>
+        ))}
+        <Button
+          kind="ghost"
+          onClick={handleAddFormattedColumn}
+          disabled={selectedFormattedColumns.length >= columns.length}
+          icon={dhNewCircleLargeFilled}
         >
-          {columnNames}
-        </ComboBox>
+          Add Additional Column
+        </Button>
       </div>
       <div className="mb-2">
         <label className="mb-0">Format Cell If</label>
