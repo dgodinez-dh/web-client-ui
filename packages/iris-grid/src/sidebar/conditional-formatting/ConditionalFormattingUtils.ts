@@ -66,6 +66,7 @@ export type ChangeCallback = (
 
 export enum FormatterType {
   CONDITIONAL = 'conditional',
+  COLUMNS = 'columns',
   ROWS = 'rows',
 }
 
@@ -747,7 +748,7 @@ export function getFormatColumns(
 
     // Stack ternary format conditions by formatted column
     const [prevRule, prevFormatColumn] = (formatterType ===
-    FormatterType.CONDITIONAL
+      FormatterType.CONDITIONAL || formatterType === FormatterType.COLUMNS
       ? columnFormatConfigMap.get(formatTargetCol.name)
       : rowFormatConfig) ?? ['null', undefined];
     const rule = makeTernaryFormatRule(dh, config, prevRule);
@@ -762,11 +763,15 @@ export function getFormatColumns(
       result.splice(index, 1);
     }
     const formatColumn =
-      formatterType === FormatterType.CONDITIONAL
+      formatterType === FormatterType.CONDITIONAL ||
+      formatterType === FormatterType.COLUMNS
         ? makeColumnFormatColumn(formatTargetCol, rule)
         : makeRowFormatColumn(dh, rule);
     result.push(formatColumn);
-    if (formatterType === FormatterType.CONDITIONAL) {
+    if (
+      formatterType === FormatterType.CONDITIONAL ||
+      formatterType === FormatterType.COLUMNS
+    ) {
       columnFormatConfigMap.set(formatTargetCol.name, [rule, formatColumn]);
     } else {
       rowFormatConfig = [rule, formatColumn];

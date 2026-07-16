@@ -3,7 +3,11 @@ import classNames from 'classnames';
 import { Button } from '@deephaven/components';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import Log from '@deephaven/log';
-import { FormatColumnWhereIcon, FormatRowWhereIcon } from '../icons';
+import {
+  FormatColumnWhereIcon,
+  FormatColumnsWhereIcon,
+  FormatRowWhereIcon,
+} from '../icons';
 import ColumnFormatEditor from './ColumnFormatEditor';
 import RowFormatEditor from './RowFormatEditor';
 import {
@@ -38,6 +42,8 @@ function getFormatterTypeIcon(option: FormatterType): JSX.Element | undefined {
   switch (option) {
     case FormatterType.CONDITIONAL:
       return <FormatColumnWhereIcon />;
+    case FormatterType.COLUMNS:
+      return <FormatColumnsWhereIcon />;
     case FormatterType.ROWS:
       return <FormatRowWhereIcon />;
   }
@@ -47,12 +53,18 @@ function getFormatterTypeLabel(option: FormatterType): string {
   switch (option) {
     case FormatterType.CONDITIONAL:
       return 'Conditional';
+    case FormatterType.COLUMNS:
+      return 'Columns';
     case FormatterType.ROWS:
       return 'Rows';
   }
 }
 
-const formatterTypes = [FormatterType.CONDITIONAL, FormatterType.ROWS];
+const formatterTypes = [
+  FormatterType.CONDITIONAL,
+  FormatterType.ROWS,
+  FormatterType.COLUMNS,
+];
 
 function ConditionalFormatEditor(
   props: ConditionalFormatEditorProps
@@ -130,7 +142,8 @@ function ConditionalFormatEditor(
           ))}
         </div>
       </div>
-      {selectedFormatter === FormatterType.CONDITIONAL && (
+      {(selectedFormatter === FormatterType.CONDITIONAL ||
+        selectedFormatter === FormatterType.COLUMNS) && (
         <ColumnFormatEditor
           columns={columns}
           dh={dh}
