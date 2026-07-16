@@ -9,6 +9,7 @@ import {
   FormatRowWhereIcon,
 } from '../icons';
 import ColumnFormatEditor from './ColumnFormatEditor';
+import MultiColumnFormatEditor from './MultiColumnFormatEditor';
 import RowFormatEditor from './RowFormatEditor';
 import {
   type BaseFormatConfig,
@@ -142,9 +143,16 @@ function ConditionalFormatEditor(
           ))}
         </div>
       </div>
-      {(selectedFormatter === FormatterType.CONDITIONAL ||
-        selectedFormatter === FormatterType.COLUMNS) && (
+      {selectedFormatter === FormatterType.CONDITIONAL && (
         <ColumnFormatEditor
+          columns={columns}
+          dh={dh}
+          config={rule?.config}
+          onChange={handleRuleChange}
+        />
+      )}
+      {selectedFormatter === FormatterType.COLUMNS && (
+        <MultiColumnFormatEditor
           columns={columns}
           dh={dh}
           config={rule?.config}
