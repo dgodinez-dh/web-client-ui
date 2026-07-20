@@ -70,20 +70,31 @@ function MultiColumnFormatEditor(
     ) ?? columns[0]
   );
 
-  // The list of columns selected to apply the formatting to.
-  const [selectedFormattedColumns, setFormattedColumns] = useState<
+  // customFormattedColumns holds an explicit column selection when non-empty.
+  // An empty array means "track the condition column" (selectedFormattedColumns
+  // will mirror [selectedColumn] automatically).
+  const [customFormattedColumns, setCustomFormattedColumns] = useState<
     ModelColumn[]
   >(() => {
-    const initial =
-      config.formattedColumns.length > 0
-        ? config.formattedColumns
-        : [config.leftHandValue];
-    return initial.map(
+    const { formattedColumns, leftHandValue } = config;
+    const isCustom =
+      formattedColumns.length > 1 ||
+      (formattedColumns.length === 1 &&
+        formattedColumns[0].name !== leftHandValue.name);
+    if (!isCustom) return [];
+    return formattedColumns.map(
       col =>
         columns.find(c => c.name === col.name && c.type === col.type) ??
         columns[0]
     );
   });
+  const selectedFormattedColumns = useMemo(
+    () =>
+      customFormattedColumns.length > 0
+        ? customFormattedColumns
+        : [selectedColumn],
+    [customFormattedColumns, selectedColumn]
+  );
 
   // The condition configuration for the formatting rule. This includes the condition type and any associated values.
   const [conditionConfig, setConditionConfig] = useState(
@@ -126,7 +137,8 @@ function MultiColumnFormatEditor(
       const newCols = [...keys]
         .map(key => columns.find(c => c.name === String(key)))
         .filter((c): c is ModelColumn => c !== undefined);
-      setFormattedColumns(newCols.length > 0 ? newCols : [columns[0]]);
+      // Empty array reverts to tracking the condition column
+      setCustomFormattedColumns(newCols);
     },
     [columns]
   );
@@ -208,16 +220,6 @@ function MultiColumnFormatEditor(
   return (
     <div className="conditional-rule-editor form">
       <div className="mb-2">
-        <label className="mb-0">Apply to Columns</label>
-        <MultiSelect
-          aria-label="Select columns to apply formatting to"
-          selectedKeys={selectedFormattedColumns.map(c => c.name)}
-          onChange={handleFormattedColumnsChange}
-        >
-          {columnNames}
-        </MultiSelect>
-      </div>
-      <div className="mb-2">
         <label className="mb-0">Format Cell If</label>
         <ComboBox
           aria-label="Select column to format"
@@ -240,6 +242,18 @@ function MultiColumnFormatEditor(
           <StyleEditor config={selectedStyle} onChange={handleStyleChange} />
         </>
       )}
+
+      <div className="mb-2">
+        <label className="mb-0">Apply to Columns</label>
+        <MultiSelect
+          aria-label="Select columns to apply formatting to"
+          width="100%"
+          selectedKeys={selectedFormattedColumns.map(c => c.name)}
+          onChange={handleFormattedColumnsChange}
+        >
+          {columnNames}
+        </MultiSelect>
+      </div>
     </div>
   );
 }
