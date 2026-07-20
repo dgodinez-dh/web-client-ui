@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Log from '@deephaven/log';
-import { Button, ComboBox, type ItemKey } from '@deephaven/components';
-import { dhNewCircleLargeFilled, vsTrash } from '@deephaven/icons';
+import {
+  ComboBox,
+  type ItemKey,
+  type ItemSelection,
+  MultiSelect,
+} from '@deephaven/components';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import {
   type BaseFormatConfig,
@@ -92,31 +96,13 @@ function MultiColumnFormatEditor(
     [columns, selectedColumn]
   );
 
-  const handleAddFormattedColumn = useCallback(() => {
-    setFormattedColumns(prev => {
-      const usedNames = new Set(prev.map(c => c.name));
-      const nextColumn =
-        columns.find(c => !usedNames.has(c.name)) ?? columns[0];
-      return [...prev, nextColumn];
-    });
-  }, [columns]);
-
-  const handleRemoveFormattedColumn = useCallback((index: number) => {
-    setFormattedColumns(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const handleFormattedColumnChange = useCallback(
-    (index: number, value: ItemKey | null) => {
-      const newColumn = columns.find(({ name }) => name === value);
-      if (newColumn !== undefined) {
-        setFormattedColumns(prev => {
-          const next = [...prev];
-          next[index] = newColumn;
-          return next;
-        });
-      } else {
-        log.error(`Column ${value} not found.`);
-      }
+  const handleFormattedColumnsChange = useCallback(
+    (keys: ItemSelection) => {
+      if (keys === 'all') return;
+      const newCols = [...keys]
+        .map(key => columns.find(c => c.name === String(key)))
+        .filter((c): c is ModelColumn => c !== undefined);
+      setFormattedColumns(newCols.length > 0 ? newCols : [columns[0]]);
     },
     [columns]
   );
@@ -183,56 +169,17 @@ function MultiColumnFormatEditor(
 
   const columnNames = useMemo(() => columns.map(({ name }) => name), [columns]);
 
-  const perComboBoxColumnNames = useMemo(
-    () =>
-      selectedFormattedColumns.map((col, index) => {
-        const otherSelected = new Set(
-          selectedFormattedColumns
-            .filter((_, i) => i !== index)
-            .map(c => c.name)
-        );
-        return columnNames.filter(
-          name => name === col.name || !otherSelected.has(name)
-        );
-      }),
-    [columnNames, selectedFormattedColumns]
-  );
-
   return (
     <div className="conditional-rule-editor form">
       <div className="mb-2">
         <label className="mb-0">Apply to Columns</label>
-        {selectedFormattedColumns.map((col, index) => (
-          // eslint-disable-next-line react/no-array-index-key
-          <div key={index} className="d-flex align-items-center mb-2">
-            <div className="flex-grow-1">
-              <ComboBox
-                aria-label="Select column to apply formatting to"
-                selectedKey={col.name}
-                onChange={value => handleFormattedColumnChange(index, value)}
-              >
-                {perComboBoxColumnNames[index]}
-              </ComboBox>
-            </div>
-            {selectedFormattedColumns.length > 1 && (
-              <Button
-                kind="ghost"
-                className="ml-1 px-2 flex-shrink-0"
-                onClick={() => handleRemoveFormattedColumn(index)}
-                icon={vsTrash}
-                tooltip="Remove column"
-              />
-            )}
-          </div>
-        ))}
-        <Button
-          kind="ghost"
-          onClick={handleAddFormattedColumn}
-          disabled={selectedFormattedColumns.length >= columns.length}
-          icon={dhNewCircleLargeFilled}
+        <MultiSelect
+          aria-label="Select columns to apply formatting to"
+          selectedKeys={selectedFormattedColumns.map(c => c.name)}
+          onChange={handleFormattedColumnsChange}
         >
-          Add Additional Column
-        </Button>
+          {columnNames}
+        </MultiSelect>
       </div>
       <div className="mb-2">
         <label className="mb-0">Format Cell If</label>
