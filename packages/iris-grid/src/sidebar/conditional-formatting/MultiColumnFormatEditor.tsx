@@ -44,6 +44,13 @@ function makeDefaultConfig(columns: ModelColumn[]): BaseFormatConfig {
   return config;
 }
 
+/**
+ * Multi-column format editor component. Allows users to select multiple columns to apply formatting to,
+ * specify a condition for formatting, and choose a style for the formatting.
+ *
+ * @param props The props for the component.
+ * @returns The JSX element for the multi-column format editor.
+ */
 function MultiColumnFormatEditor(
   props: MultiColumnFormatEditorProps
 ): JSX.Element {
@@ -54,6 +61,7 @@ function MultiColumnFormatEditor(
     onChange = DEFAULT_CALLBACK,
   } = props;
 
+  // The left-hand value column selected for the condition. This is the column that will be evaluated against the specified condition.
   const [selectedColumn, setColumn] = useState(
     columns.find(
       c =>
@@ -61,6 +69,8 @@ function MultiColumnFormatEditor(
         c.type === config.leftHandValue.type
     ) ?? columns[0]
   );
+
+  // The list of columns selected to apply the formatting to.
   const [selectedFormattedColumns, setFormattedColumns] = useState<
     ModelColumn[]
   >(() => {
@@ -74,12 +84,21 @@ function MultiColumnFormatEditor(
         columns[0]
     );
   });
+
+  // The condition configuration for the formatting rule. This includes the condition type and any associated values.
   const [conditionConfig, setConditionConfig] = useState(
     getConditionConfig(config)
   );
+  // Whether the current condition configuration is valid. This is used to determine if the rule can be applied.
   const [conditionValid, setConditionValid] = useState(false);
+  // The style configuration for the formatting rule. This includes the style type and any associated style properties.
   const [selectedStyle, setStyle] = useState(config.style);
 
+  /**
+   * Handles changes to the selected column for the condition.
+   *
+   * @param value The name of the new column selected for the condition.
+   */
   const handleColumnChange = useCallback(
     (value: ItemKey | null) => {
       const newColumn = columns.find(({ name }) => name === value);
@@ -96,6 +115,11 @@ function MultiColumnFormatEditor(
     [columns, selectedColumn]
   );
 
+  /**
+   * Handles changes to the selected columns for formatting. Updates the list of selected formatted columns based on the provided keys.
+   *
+   * @param keys The keys of the columns selected for formatting.
+   */
   const handleFormattedColumnsChange = useCallback(
     (keys: ItemSelection) => {
       if (keys === 'all') return;
@@ -107,6 +131,12 @@ function MultiColumnFormatEditor(
     [columns]
   );
 
+  /**
+   * Handles changes to the condition configuration. Updates the condition configuration and validity state based on the provided values.
+   *
+   * @param updatedConditionConfig The new condition configuration.
+   * @param isValid Whether the new condition configuration is valid.
+   */
   const handleConditionChange = useCallback(
     (updatedConditionConfig: ConditionConfig, isValid: boolean) => {
       log.debug('handleConditionChange', updatedConditionConfig, isValid);
@@ -116,6 +146,11 @@ function MultiColumnFormatEditor(
     []
   );
 
+  /**
+   * Handles changes to the style configuration. Updates the selected style based on the provided style configuration.
+   *
+   * @param updatedStyleConfig The new style configuration.
+   */
   const handleStyleChange = useCallback(
     (updatedStyleConfig: FormatStyleConfig) => {
       log.debug('handleStyleChange', updatedStyleConfig);
@@ -124,6 +159,7 @@ function MultiColumnFormatEditor(
     []
   );
 
+  // Update the parent component with the current rule configuration whenever any of the relevant state variables change.
   useEffect(
     function updateColumnFormat() {
       let isValid = conditionValid;
