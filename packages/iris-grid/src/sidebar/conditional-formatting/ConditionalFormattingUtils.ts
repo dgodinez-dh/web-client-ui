@@ -66,7 +66,6 @@ export type ChangeCallback = (
 
 export enum FormatterType {
   CONDITIONAL = 'conditional',
-  COLUMNS = 'columns',
   ROWS = 'rows',
 }
 
@@ -711,9 +710,7 @@ export function getFormatColumns(
   >();
   rules.forEach(({ config, type: formatterType }) => {
     const { leftHandValue, formattedColumns } = config;
-    const isColumnType =
-      formatterType === FormatterType.CONDITIONAL ||
-      formatterType === FormatterType.COLUMNS;
+    const isColumnType = formatterType === FormatterType.CONDITIONAL;
 
     // Check both name and type because the type can change
     const conditionCol = columns.find(
@@ -728,7 +725,7 @@ export function getFormatColumns(
       return;
     }
 
-    // For CONDITIONAL and COLUMNS rules, format each column in formattedColumns.
+    // For COLUMNS rules, format each column in formattedColumns.
     // When formattedColumns is absent or empty, fall back to the condition column
     // by using [null] to indicate that the condition column should be used as the format target.
     const targetColConfigs: (ModelColumn | null)[] =
