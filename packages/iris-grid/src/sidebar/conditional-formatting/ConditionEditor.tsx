@@ -3,9 +3,13 @@ import classNames from 'classnames';
 import { TableUtils } from '@deephaven/jsapi-utils';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import Log from '@deephaven/log';
-import { Select, Tooltip, ToggleButton } from '@deephaven/components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { vsTable, dhInput } from '@deephaven/icons';
+import {
+  Item,
+  type ItemKey,
+  Picker,
+  Section,
+  Select,
+} from '@deephaven/components';
 import {
   StringCondition,
   DateCondition,
@@ -37,7 +41,10 @@ export interface ConditionEditorProps {
 
 const DEFAULT_CALLBACK = (): void => undefined;
 
-const numberConditionOptions = [
+const VALUE_PREFIX = 'value-';
+const COLUMN_PREFIX = 'column-';
+
+const numberValueConditions = [
   NumberCondition.IS_EQUAL,
   NumberCondition.IS_NOT_EQUAL,
   NumberCondition.IS_BETWEEN,
@@ -47,13 +54,18 @@ const numberConditionOptions = [
   NumberCondition.LESS_THAN_OR_EQUAL,
   NumberCondition.IS_NULL,
   NumberCondition.IS_NOT_NULL,
-].map(option => (
-  <option key={option} value={option}>
-    {getLabelForNumberCondition(option)}
-  </option>
-));
+];
 
-const stringConditions = [
+const numberColumnConditions = [
+  NumberCondition.IS_EQUAL,
+  NumberCondition.IS_NOT_EQUAL,
+  NumberCondition.GREATER_THAN,
+  NumberCondition.GREATER_THAN_OR_EQUAL,
+  NumberCondition.LESS_THAN,
+  NumberCondition.LESS_THAN_OR_EQUAL,
+];
+
+const stringValueConditions = [
   StringCondition.IS_EXACTLY,
   StringCondition.IS_NOT_EXACTLY,
   StringCondition.CONTAINS,
@@ -62,13 +74,18 @@ const stringConditions = [
   StringCondition.ENDS_WITH,
   StringCondition.IS_NULL,
   StringCondition.IS_NOT_NULL,
-].map(option => (
-  <option key={option} value={option}>
-    {getLabelForStringCondition(option)}
-  </option>
-));
+];
 
-const dateConditions = [
+const stringColumnConditions = [
+  StringCondition.IS_EXACTLY,
+  StringCondition.IS_NOT_EXACTLY,
+  StringCondition.CONTAINS,
+  StringCondition.DOES_NOT_CONTAIN,
+  StringCondition.STARTS_WITH,
+  StringCondition.ENDS_WITH,
+];
+
+const dateValueConditions = [
   DateCondition.IS_EXACTLY,
   DateCondition.IS_NOT_EXACTLY,
   DateCondition.IS_BEFORE,
@@ -77,35 +94,42 @@ const dateConditions = [
   DateCondition.IS_AFTER_OR_EQUAL,
   DateCondition.IS_NULL,
   DateCondition.IS_NOT_NULL,
-].map(option => (
-  <option key={option} value={option}>
-    {getLabelForDateCondition(option)}
-  </option>
-));
+];
 
-const booleanConditions = [
+const dateColumnConditions = [
+  DateCondition.IS_EXACTLY,
+  DateCondition.IS_NOT_EXACTLY,
+  DateCondition.IS_BEFORE,
+  DateCondition.IS_BEFORE_OR_EQUAL,
+  DateCondition.IS_AFTER,
+  DateCondition.IS_AFTER_OR_EQUAL,
+];
+
+const booleanValueConditions = [
   BooleanCondition.IS_TRUE,
   BooleanCondition.IS_FALSE,
   BooleanCondition.IS_EQUAL,
   BooleanCondition.IS_NOT_EQUAL,
   BooleanCondition.IS_NULL,
   BooleanCondition.IS_NOT_NULL,
-].map(option => (
-  <option key={option} value={option}>
-    {getLabelForBooleanCondition(option)}
-  </option>
-));
+];
 
-const charConditions = [
+const booleanColumnConditions = [
+  BooleanCondition.IS_EQUAL,
+  BooleanCondition.IS_NOT_EQUAL,
+];
+
+const charValueConditions = [
   CharCondition.IS_EQUAL,
   CharCondition.IS_NOT_EQUAL,
   CharCondition.IS_NULL,
   CharCondition.IS_NOT_NULL,
-].map(option => (
-  <option key={option} value={option}>
-    {getLabelForCharCondition(option)}
-  </option>
-));
+];
+
+const charColumnConditions = [
+  CharCondition.IS_EQUAL,
+  CharCondition.IS_NOT_EQUAL,
+];
 
 function isNumberConditionValid(
   condition: NumberCondition,
@@ -145,52 +169,94 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
   const { column, columns, config, dh, onChange = DEFAULT_CALLBACK } = props;
   const selectedColumnType = column.type;
   const [prevColumnType, setPrevColumnType] = useState(selectedColumnType);
-  const [selectedCondition, setCondition] = useState(config.condition);
+
+  // Encode both condition and RHV mode in a single key: 'value-is-equal' or 'column-is-equal'
+  const [selectedConditionKey, setConditionKey] = useState(
+    () =>
+      `${
+        typeof config.rightHandValue === 'object' ? COLUMN_PREFIX : VALUE_PREFIX
+      }${config.condition}`
+  );
+  const selectedCondition = selectedConditionKey.replace(
+    /^(value|column)-/,
+    ''
+  ) as Condition;
+  const isColumnMode = selectedConditionKey.startsWith(COLUMN_PREFIX);
+
   const [conditionValue, setValue] = useState<string | ModelColumn | undefined>(
     config.rightHandValue
   );
   const [startValue, setStartValue] = useState(config.start);
   const [endValue, setEndValue] = useState(config.end);
   const [isValid, setIsValid] = useState(true);
-  const [rhvColumnMode, setRhvColumnMode] = useState(
-    typeof config.rightHandValue === 'object'
-  );
 
   if (selectedColumnType !== prevColumnType) {
     // Column type changed, reset condition and value fields
-    setCondition(getDefaultConditionForType(selectedColumnType));
+    setConditionKey(
+      `${VALUE_PREFIX}${getDefaultConditionForType(selectedColumnType)}`
+    );
     setValue(getDefaultValueForType(selectedColumnType));
     setStartValue(undefined);
     setEndValue(undefined);
-    setRhvColumnMode(false);
     setPrevColumnType(selectedColumnType);
   }
 
-  const conditions = useMemo(() => {
-    if (selectedColumnType === undefined) {
-      return [];
-    }
-    if (TableUtils.isNumberType(selectedColumnType)) {
-      return numberConditionOptions;
-    }
-    if (TableUtils.isCharType(selectedColumnType)) {
-      return charConditions;
-    }
-    if (TableUtils.isStringType(selectedColumnType)) {
-      return stringConditions;
-    }
-    if (TableUtils.isDateType(selectedColumnType)) {
-      return dateConditions;
-    }
-    if (TableUtils.isBooleanType(selectedColumnType)) {
-      return booleanConditions;
-    }
-  }, [selectedColumnType]);
+  // Build label helper for any condition enum value
+  const getConditionLabel = useCallback(
+    (condition: Condition): string => {
+      if (TableUtils.isNumberType(selectedColumnType)) {
+        return getLabelForNumberCondition(condition as NumberCondition);
+      }
+      if (TableUtils.isCharType(selectedColumnType)) {
+        return getLabelForCharCondition(condition as CharCondition);
+      }
+      if (TableUtils.isStringType(selectedColumnType)) {
+        return getLabelForStringCondition(condition as StringCondition);
+      }
+      if (TableUtils.isDateType(selectedColumnType)) {
+        return getLabelForDateCondition(condition as DateCondition);
+      }
+      return getLabelForBooleanCondition(condition as BooleanCondition);
+    },
+    [selectedColumnType]
+  );
 
-  const handleRhvColumnModeToggle = useCallback(() => {
-    setRhvColumnMode(prev => {
-      const next = !prev;
-      if (next) {
+  const [pickerValueItems, pickerColumnItems] = useMemo(() => {
+    let valueConditions: Condition[] = [];
+    let columnConditions: Condition[] = [];
+    if (TableUtils.isNumberType(selectedColumnType)) {
+      valueConditions = numberValueConditions;
+      columnConditions = numberColumnConditions;
+    } else if (TableUtils.isCharType(selectedColumnType)) {
+      valueConditions = charValueConditions;
+      columnConditions = charColumnConditions;
+    } else if (TableUtils.isStringType(selectedColumnType)) {
+      valueConditions = stringValueConditions;
+      columnConditions = stringColumnConditions;
+    } else if (TableUtils.isDateType(selectedColumnType)) {
+      valueConditions = dateValueConditions;
+      columnConditions = dateColumnConditions;
+    } else if (TableUtils.isBooleanType(selectedColumnType)) {
+      valueConditions = booleanValueConditions;
+      columnConditions = booleanColumnConditions;
+    }
+    return [
+      valueConditions.map(c => (
+        <Item key={`${VALUE_PREFIX}${c}`}>{getConditionLabel(c)}</Item>
+      )),
+      columnConditions.map(c => (
+        <Item key={`${COLUMN_PREFIX}${c}`}>{getConditionLabel(c)}</Item>
+      )),
+    ];
+  }, [selectedColumnType, getConditionLabel]);
+
+  const handleConditionKeyChange = useCallback(
+    (key: ItemKey | null) => {
+      if (key == null) return;
+      const keyStr = String(key);
+      log.debug('handleConditionKeyChange', keyStr);
+      const nextIsColumn = keyStr.startsWith(COLUMN_PREFIX);
+      if (nextIsColumn && typeof conditionValue !== 'object') {
         // Switching to column mode — default to first compatible column
         const firstCompatible = columns.find(c => {
           if (TableUtils.isNumberType(selectedColumnType)) {
@@ -206,18 +272,14 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
             ? { name: firstCompatible.name, type: firstCompatible.type }
             : undefined
         );
-      } else {
-        // Switching to text mode — clear the column value
+      } else if (!nextIsColumn && typeof conditionValue === 'object') {
+        // Switching to value mode — clear the column value
         setValue(getDefaultValueForType(selectedColumnType));
       }
-      return next;
-    });
-  }, [columns, selectedColumnType]);
-
-  const handleConditionChange = useCallback((value: string) => {
-    log.debug('handleConditionChange', value);
-    setCondition(value as Condition);
-  }, []);
+      setConditionKey(keyStr);
+    },
+    [columns, selectedColumnType, conditionValue]
+  );
 
   const handleRightHandValueChange = useCallback(
     (value: string | ModelColumn | undefined) => {
@@ -375,7 +437,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       );
     });
 
-    // IS_BETWEEN uses two separate range inputs — no toggle
+    // IS_BETWEEN uses two separate range inputs
     if (
       TableUtils.isNumberType(selectedColumnType) &&
       selectedCondition === NumberCondition.IS_BETWEEN
@@ -409,60 +471,40 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       );
     }
 
-    // All other conditions: toggle between text input and column picker
-    const columnToggle = (
-      <ToggleButton
-        isSelected={rhvColumnMode}
-        onChange={handleRhvColumnModeToggle}
-        aria-label={rhvColumnMode ? 'Columns' : 'Value'}
-      >
-        <Tooltip>{rhvColumnMode ? 'Columns' : 'Value'}</Tooltip>
-        <FontAwesomeIcon icon={rhvColumnMode ? vsTable : dhInput} />
-      </ToggleButton>
-    );
-
-    if (rhvColumnMode) {
+    if (isColumnMode) {
       return (
-        <div className="d-flex align-items-center">
-          <Select
-            value={
-              typeof conditionValue === 'object' ? conditionValue.name : ''
+        <Select
+          value={typeof conditionValue === 'object' ? conditionValue.name : ''}
+          className="custom-select"
+          onChange={value => {
+            const col = compatibleRhvColumns.find(c => c.name === value);
+            if (col != null) {
+              handleRightHandValueChange({
+                name: col.name,
+                type: col.type,
+              });
             }
-            className="custom-select flex-grow-1"
-            onChange={value => {
-              const col = compatibleRhvColumns.find(c => c.name === value);
-              if (col != null) {
-                handleRightHandValueChange({
-                  name: col.name,
-                  type: col.type,
-                });
-              }
-            }}
-          >
-            {compatibleRhvColumns.map(c => (
-              <option key={c.name} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
-          {columnToggle}
-        </div>
+          }}
+        >
+          {compatibleRhvColumns.map(c => (
+            <option key={c.name} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
       );
     }
 
     return (
-      <div className="d-flex align-items-center">
-        <input
-          type={TableUtils.isNumberType(selectedColumnType) ? 'number' : 'text'}
-          className={classNames('form-control', 'flex-grow-1', {
-            'is-invalid': hasInvalidValue,
-          })}
-          value={typeof conditionValue === 'string' ? conditionValue : ''}
-          placeholder="Enter a value"
-          onChange={e => handleRightHandValueChange(e.target.value)}
-        />
-        {columnToggle}
-      </div>
+      <input
+        type={TableUtils.isNumberType(selectedColumnType) ? 'number' : 'text'}
+        className={classNames('form-control', {
+          'is-invalid': hasInvalidValue,
+        })}
+        value={typeof conditionValue === 'string' ? conditionValue : ''}
+        placeholder="Enter a value"
+        onChange={e => handleRightHandValueChange(e.target.value)}
+      />
     );
   }, [
     columns,
@@ -475,20 +517,22 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
     handleRightHandValueChange,
     handleStartValueChange,
     handleEndValueChange,
-    handleRhvColumnModeToggle,
-    rhvColumnMode,
+    isColumnMode,
   ]);
 
   return (
     <div className="condition-editor mb-2">
-      <Select
-        value={selectedCondition}
+      <Picker
+        selectedKey={selectedConditionKey}
+        aria-label="Select condition"
         data-testid="condition-select"
-        className="custom-select mb-2"
-        onChange={handleConditionChange}
+        width="100%"
+        UNSAFE_className="mb-2"
+        onChange={handleConditionKeyChange}
       >
-        {conditions}
-      </Select>
+        <Section title="Value">{pickerValueItems}</Section>
+        <Section title="Cross-Column">{pickerColumnItems}</Section>
+      </Picker>
       {conditionInputs}
     </div>
   );
