@@ -244,7 +244,7 @@ function MultiColumnFormatEditor(
       )}
 
       <div className="mb-2">
-        <label className="mb-0">Apply to Columns</label>
+        <label className="mb-0 mt-1">Apply to Columns</label>
         <MultiSelect
           aria-label="Select columns to apply formatting to"
           width="100%"
