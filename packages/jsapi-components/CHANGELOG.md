@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.26.1](https://github.com/deephaven/web-client-ui/compare/v1.26.0...v1.26.1) (2026-07-21)
+
+### Bug Fixes
+
+- DH-23126: Use Subscription for Update Event with Viewport Options ([#2723](https://github.com/deephaven/web-client-ui/issues/2723)) ([43040e9](https://github.com/deephaven/web-client-ui/commit/43040e92568c177b7250990fdf40d6175be9cb74)), closes [/github.com/deephaven/deephaven-core/commit/de3420a8e6dcc3986597429059be719958d20fa7#diff-162aa86fd5cbdd89292447104bd0ce09e4d45907c433bd9d10e41924e66bf4a3R848](https://github.com/deephaven//github.com/deephaven/deephaven-core/commit/de3420a8e6dcc3986597429059be719958d20fa7/issues/diff-162aa86fd5cbdd89292447104bd0ce09e4d45907c433bd9d10e41924e66bf4a3R848)
+
 ## [1.23.0](https://github.com/deephaven/web-client-ui/compare/v1.22.1...v1.23.0) (2026-06-25)
 
 **Note:** Version bump only for package @deephaven/jsapi-components

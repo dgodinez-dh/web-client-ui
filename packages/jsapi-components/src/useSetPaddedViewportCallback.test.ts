@@ -1,22 +1,25 @@
 import { renderHook } from '@testing-library/react';
-import type { dh } from '@deephaven/jsapi-types';
+import type { dh as DhType } from '@deephaven/jsapi-types';
+import dh from '@deephaven/jsapi-shim';
 import { TestUtils } from '@deephaven/test-utils';
 import { TableUtils } from '@deephaven/jsapi-utils';
 import useSetPaddedViewportCallback from './useSetPaddedViewportCallback';
+import { makeApiContextWrapper } from './HookTestUtils';
 
-let table: dh.Table;
-let table2: dh.Table;
-let viewportOptions: dh.ViewportSubscriptionOptions;
-let viewportOptionsMissingRows: Partial<dh.ViewportSubscriptionOptions>;
-let viewportOptionsMissingColumns: Partial<dh.ViewportSubscriptionOptions>;
-let viewportOptionsMissingBoth: Partial<dh.ViewportSubscriptionOptions>;
+let table: DhType.Table;
+let table2: DhType.Table;
+let viewportOptions: DhType.ViewportSubscriptionOptions;
+let viewportOptionsMissingRows: Partial<DhType.ViewportSubscriptionOptions>;
+let viewportOptionsMissingColumns: Partial<DhType.ViewportSubscriptionOptions>;
+let viewportOptionsMissingBoth: Partial<DhType.ViewportSubscriptionOptions>;
 const viewportSize = 10;
 const viewportPadding = 4;
+const wrapper = makeApiContextWrapper(dh);
 
 beforeEach(() => {
   jest.clearAllMocks();
-  table = TestUtils.createMockProxy<dh.Table>({ size: 100 });
-  table2 = TestUtils.createMockProxy<dh.Table>({ size: 101 });
+  table = TestUtils.createMockProxy<DhType.Table>({ size: 100 });
+  table2 = TestUtils.createMockProxy<DhType.Table>({ size: 101 });
   viewportOptions = {
     rows: {
       first: 0,
@@ -37,8 +40,10 @@ beforeEach(() => {
 });
 
 it('should create a callback that sets a padded viewport', () => {
-  const { result } = renderHook(() =>
-    useSetPaddedViewportCallback(table, viewportSize, viewportPadding, null)
+  const { result } = renderHook(
+    () =>
+      useSetPaddedViewportCallback(table, viewportSize, viewportPadding, null),
+    { wrapper }
   );
 
   // Call our `setPaddedViewport` callback.
@@ -60,6 +65,7 @@ it('should use TableViewportSubscription if viewport options are provided', () =
   jest.spyOn(TableUtils, 'isTreeTable').mockReturnValue(false);
 
   const mockSubscription = {
+    addEventListener: jest.fn().mockReturnValue(() => undefined),
     update: jest.fn(),
     close: jest.fn(),
   };
@@ -68,13 +74,15 @@ it('should use TableViewportSubscription if viewport options are provided', () =
     mockSubscription
   );
 
-  const { result } = renderHook(() =>
-    useSetPaddedViewportCallback(
-      table,
-      viewportSize,
-      viewportPadding,
-      viewportOptions
-    )
+  const { result } = renderHook(
+    () =>
+      useSetPaddedViewportCallback(
+        table,
+        viewportSize,
+        viewportPadding,
+        viewportOptions
+      ),
+    { wrapper }
   );
 
   // Call callback for the first time, which should create a subscription
@@ -108,6 +116,7 @@ it('should fill missing rows and columns when creating a subscription', () => {
   jest.spyOn(TableUtils, 'isTreeTable').mockReturnValue(false);
 
   const mockSubscription = {
+    addEventListener: jest.fn().mockReturnValue(() => undefined),
     update: jest.fn(),
     close: jest.fn(),
   };
@@ -124,7 +133,7 @@ it('should fill missing rows and columns when creating a subscription', () => {
         viewportPadding,
         options
       ),
-    { initialProps: viewportOptionsMissingRows }
+    { initialProps: viewportOptionsMissingRows, wrapper }
   );
 
   const firstRow = 30;
@@ -169,13 +178,15 @@ it('should fill missing rows and columns when creating a subscription', () => {
 it('should use setViewport if provided a tree table', () => {
   jest.spyOn(TableUtils, 'isTreeTable').mockReturnValue(true);
 
-  const { result } = renderHook(() =>
-    useSetPaddedViewportCallback(
-      table,
-      viewportSize,
-      viewportPadding,
-      viewportOptions
-    )
+  const { result } = renderHook(
+    () =>
+      useSetPaddedViewportCallback(
+        table,
+        viewportSize,
+        viewportPadding,
+        viewportOptions
+      ),
+    { wrapper }
   );
 
   // Call our `setPaddedViewport` callback.
@@ -197,10 +208,12 @@ it('should set update viewport subscription if called in same render as the hook
   jest.spyOn(TableUtils, 'isTreeTable').mockReturnValue(false);
 
   const mockSubscription = {
+    addEventListener: jest.fn().mockReturnValue(() => undefined),
     update: jest.fn(),
     close: jest.fn(),
   };
   const mockSubscription2 = {
+    addEventListener: jest.fn().mockReturnValue(() => undefined),
     update: jest.fn(),
     close: jest.fn(),
   };
@@ -221,7 +234,7 @@ it('should set update viewport subscription if called in same render as the hook
       // Call the callback in same render
       callback(30);
     },
-    { initialProps: viewportOptions }
+    { initialProps: viewportOptions, wrapper }
   );
 
   expect(table.createViewportSubscription).toHaveBeenCalledWith(
@@ -250,11 +263,13 @@ it('should create a new subscription when viewportSubscriptionOptions or table c
   jest.spyOn(TableUtils, 'isTreeTable').mockReturnValue(false);
 
   const mockSubscription1 = {
+    addEventListener: jest.fn().mockReturnValue(() => undefined),
     update: jest.fn(),
     close: jest.fn(),
   };
 
   const mockSubscription2 = {
+    addEventListener: jest.fn().mockReturnValue(() => undefined),
     update: jest.fn(),
     close: jest.fn(),
   };
@@ -273,6 +288,7 @@ it('should create a new subscription when viewportSubscriptionOptions or table c
       ),
     {
       initialProps: { table, options: viewportOptions },
+      wrapper,
     }
   );
 
@@ -301,7 +317,15 @@ it('should create a new subscription when viewportSubscriptionOptions or table c
   expect(mockSubscription2.update).toHaveBeenCalled();
 
   // Change table and rerender
-  const newTable = TestUtils.createMockProxy<dh.Table>({ size: 100 });
+  const mockSubscription3 = {
+    addEventListener: jest.fn().mockReturnValue(() => undefined),
+    update: jest.fn(),
+    close: jest.fn(),
+  };
+  const newTable = TestUtils.createMockProxy<DhType.Table>({ size: 100 });
+  (newTable.createViewportSubscription as jest.Mock).mockReturnValue(
+    mockSubscription3
+  );
   rerender({ table: newTable, options: newViewportOptions });
   expect(mockSubscription2.close).toHaveBeenCalled();
 
@@ -318,6 +342,7 @@ it('should close subscription on unmount', () => {
   jest.spyOn(TableUtils, 'isTreeTable').mockReturnValue(false);
 
   const mockSubscription = {
+    addEventListener: jest.fn().mockReturnValue(() => undefined),
     update: jest.fn(),
     close: jest.fn(),
   };
@@ -326,13 +351,15 @@ it('should close subscription on unmount', () => {
     mockSubscription
   );
 
-  const { result, unmount } = renderHook(() =>
-    useSetPaddedViewportCallback(
-      table,
-      viewportSize,
-      viewportPadding,
-      viewportOptions
-    )
+  const { result, unmount } = renderHook(
+    () =>
+      useSetPaddedViewportCallback(
+        table,
+        viewportSize,
+        viewportPadding,
+        viewportOptions
+      ),
+    { wrapper }
   );
 
   result.current(30);
