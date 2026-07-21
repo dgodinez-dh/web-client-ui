@@ -4,11 +4,11 @@ import { TableUtils } from '@deephaven/jsapi-utils';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import Log from '@deephaven/log';
 import {
+  ComboBox,
   Item,
   type ItemKey,
   Picker,
   Section,
-  Select,
 } from '@deephaven/components';
 import {
   StringCondition,
@@ -473,25 +473,21 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
 
     if (isColumnMode) {
       return (
-        <Select
-          value={typeof conditionValue === 'object' ? conditionValue.name : ''}
-          className="custom-select"
-          onChange={value => {
-            const col = compatibleRhvColumns.find(c => c.name === value);
+        <ComboBox
+          aria-label="Select a column"
+          selectedKey={
+            typeof conditionValue === 'object' ? conditionValue.name : null
+          }
+          onChange={key => {
+            if (key == null) return;
+            const col = compatibleRhvColumns.find(c => c.name === String(key));
             if (col != null) {
-              handleRightHandValueChange({
-                name: col.name,
-                type: col.type,
-              });
+              handleRightHandValueChange({ name: col.name, type: col.type });
             }
           }}
         >
-          {compatibleRhvColumns.map(c => (
-            <option key={c.name} value={c.name}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
+          {compatibleRhvColumns.map(c => c.name)}
+        </ComboBox>
       );
     }
 
