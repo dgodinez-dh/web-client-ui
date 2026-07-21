@@ -15,13 +15,6 @@ export type ModelColumn = {
   type: string;
 };
 
-/**
- * Gets the column name from a `string | ModelColumn` value.
- */
-export function getColumnNameFromValue(value: string | ModelColumn): string {
-  return typeof value === 'string' ? value : value.name;
-}
-
 export type Condition =
   | NumberCondition
   | StringCondition

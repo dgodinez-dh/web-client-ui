@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { TableUtils } from '@deephaven/jsapi-utils';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import Log from '@deephaven/log';
-import { ComboBox, type ItemKey, Select } from '@deephaven/components';
+import { Select, ToggleButton } from '@deephaven/components';
 import {
   StringCondition,
   DateCondition,
@@ -21,7 +21,6 @@ import {
   getLabelForCharCondition,
   isDateConditionValid,
   getDefaultValueForType,
-  getColumnNameFromValue,
 } from './ConditionalFormattingUtils';
 
 const log = Log.module('ConditionEditor');
@@ -140,41 +139,6 @@ function isNumberConditionValid(
   return false;
 }
 
-function getRightHandValueInput(
-  columns: ModelColumn[],
-  conditionValue: string | ModelColumn | undefined,
-  onValueChange: (value: string | ModelColumn | undefined) => void,
-  isInvalid: boolean
-): JSX.Element {
-  const displayValue = getColumnNameFromValue(conditionValue ?? '');
-
-  return (
-    <ComboBox
-      aria-label="Enter or select a value"
-      allowsCustomValue
-      inputValue={displayValue}
-      validationState={isInvalid ? 'invalid' : undefined}
-      onInputChange={(text: string) => {
-        const matched = columns.find(c => c.name === text);
-        onValueChange(
-          matched != null ? { name: matched.name, type: matched.type } : text
-        );
-      }}
-      onChange={(key: ItemKey | null) => {
-        if (key == null) return;
-        const matched = columns.find(c => c.name === String(key));
-        onValueChange(
-          matched != null
-            ? { name: matched.name, type: matched.type }
-            : String(key)
-        );
-      }}
-    >
-      {columns.map(c => c.name)}
-    </ComboBox>
-  );
-}
-
 function ConditionEditor(props: ConditionEditorProps): JSX.Element {
   const { column, columns, config, dh, onChange = DEFAULT_CALLBACK } = props;
   const selectedColumnType = column.type;
@@ -186,6 +150,9 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
   const [startValue, setStartValue] = useState(config.start);
   const [endValue, setEndValue] = useState(config.end);
   const [isValid, setIsValid] = useState(true);
+  const [rhvColumnMode, setRhvColumnMode] = useState(
+    typeof config.rightHandValue === 'object'
+  );
 
   if (selectedColumnType !== prevColumnType) {
     // Column type changed, reset condition and value fields
@@ -193,6 +160,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
     setValue(getDefaultValueForType(selectedColumnType));
     setStartValue(undefined);
     setEndValue(undefined);
+    setRhvColumnMode(false);
     setPrevColumnType(selectedColumnType);
   }
 
@@ -216,6 +184,33 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       return booleanConditions;
     }
   }, [selectedColumnType]);
+
+  const handleRhvColumnModeToggle = useCallback(() => {
+    setRhvColumnMode(prev => {
+      const next = !prev;
+      if (next) {
+        // Switching to column mode — default to first compatible column
+        const firstCompatible = columns.find(c => {
+          if (TableUtils.isNumberType(selectedColumnType)) {
+            return TableUtils.isNumberType(c.type);
+          }
+          return (
+            TableUtils.getNormalizedType(selectedColumnType) ===
+            TableUtils.getNormalizedType(c.type)
+          );
+        });
+        setValue(
+          firstCompatible != null
+            ? { name: firstCompatible.name, type: firstCompatible.type }
+            : undefined
+        );
+      } else {
+        // Switching to text mode — clear the column value
+        setValue(getDefaultValueForType(selectedColumnType));
+      }
+      return next;
+    });
+  }, [columns, selectedColumnType]);
 
   const handleConditionChange = useCallback((value: string) => {
     log.debug('handleConditionChange', value);
@@ -378,7 +373,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       );
     });
 
-    // IS_BETWEEN uses two separate range inputs
+    // IS_BETWEEN uses two separate range inputs — no toggle
     if (
       TableUtils.isNumberType(selectedColumnType) &&
       selectedCondition === NumberCondition.IS_BETWEEN
@@ -412,12 +407,58 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       );
     }
 
-    // All remaining conditions use the column/value combobox
-    return getRightHandValueInput(
-      compatibleRhvColumns,
-      conditionValue,
-      handleRightHandValueChange,
-      hasInvalidValue
+    // All other conditions: toggle between text input and column picker
+    const columnToggle = (
+      <ToggleButton
+        isSelected={rhvColumnMode}
+        onChange={handleRhvColumnModeToggle}
+        UNSAFE_className="mb-1"
+      >
+        Columns
+      </ToggleButton>
+    );
+
+    if (rhvColumnMode) {
+      return (
+        <>
+          {columnToggle}
+          <Select
+            value={
+              typeof conditionValue === 'object' ? conditionValue.name : ''
+            }
+            className="custom-select"
+            onChange={value => {
+              const col = compatibleRhvColumns.find(c => c.name === value);
+              if (col != null) {
+                handleRightHandValueChange({
+                  name: col.name,
+                  type: col.type,
+                });
+              }
+            }}
+          >
+            {compatibleRhvColumns.map(c => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        </>
+      );
+    }
+
+    return (
+      <>
+        {columnToggle}
+        <input
+          type="text"
+          className={classNames('form-control', {
+            'is-invalid': hasInvalidValue,
+          })}
+          value={typeof conditionValue === 'string' ? conditionValue : ''}
+          onChange={e => handleRightHandValueChange(e.target.value)}
+        />
+      </>
     );
   }, [
     columns,
@@ -430,6 +471,8 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
     handleRightHandValueChange,
     handleStartValueChange,
     handleEndValueChange,
+    handleRhvColumnModeToggle,
+    rhvColumnMode,
   ]);
 
   return (
