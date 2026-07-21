@@ -527,7 +527,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
         onChange={handleConditionKeyChange}
       >
         <Section title="Value">{pickerValueItems}</Section>
-        <Section title="Cross-Column">{pickerColumnItems}</Section>
+        <Section title="Column">{pickerColumnItems}</Section>
       </Picker>
       {conditionInputs}
     </div>
