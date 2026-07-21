@@ -3,7 +3,9 @@ import classNames from 'classnames';
 import { TableUtils } from '@deephaven/jsapi-utils';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import Log from '@deephaven/log';
-import { Select, ToggleButton } from '@deephaven/components';
+import { Select, Tooltip, ToggleButton } from '@deephaven/components';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { vsTable, dhInput } from '@deephaven/icons';
 import {
   StringCondition,
   DateCondition,
@@ -412,21 +414,21 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
       <ToggleButton
         isSelected={rhvColumnMode}
         onChange={handleRhvColumnModeToggle}
-        UNSAFE_className="mb-1"
+        aria-label={rhvColumnMode ? 'Columns' : 'Value'}
       >
-        Columns
+        <Tooltip>{rhvColumnMode ? 'Columns' : 'Value'}</Tooltip>
+        <FontAwesomeIcon icon={rhvColumnMode ? vsTable : dhInput} />
       </ToggleButton>
     );
 
     if (rhvColumnMode) {
       return (
-        <>
-          {columnToggle}
+        <div className="d-flex align-items-center">
           <Select
             value={
               typeof conditionValue === 'object' ? conditionValue.name : ''
             }
-            className="custom-select"
+            className="custom-select flex-grow-1"
             onChange={value => {
               const col = compatibleRhvColumns.find(c => c.name === value);
               if (col != null) {
@@ -443,22 +445,23 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
               </option>
             ))}
           </Select>
-        </>
+          {columnToggle}
+        </div>
       );
     }
 
     return (
-      <>
-        {columnToggle}
+      <div className="d-flex align-items-center">
         <input
           type="text"
-          className={classNames('form-control', {
+          className={classNames('form-control', 'flex-grow-1', {
             'is-invalid': hasInvalidValue,
           })}
           value={typeof conditionValue === 'string' ? conditionValue : ''}
           onChange={e => handleRightHandValueChange(e.target.value)}
         />
-      </>
+        {columnToggle}
+      </div>
     );
   }, [
     columns,
