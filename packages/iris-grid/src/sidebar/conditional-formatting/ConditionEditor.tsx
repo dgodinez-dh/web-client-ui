@@ -453,7 +453,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
     return (
       <div className="d-flex align-items-center">
         <input
-          type="text"
+          type={TableUtils.isNumberType(selectedColumnType) ? 'number' : 'text'}
           className={classNames('form-control', 'flex-grow-1', {
             'is-invalid': hasInvalidValue,
           })}
