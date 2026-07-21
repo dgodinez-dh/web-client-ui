@@ -458,6 +458,7 @@ function ConditionEditor(props: ConditionEditorProps): JSX.Element {
             'is-invalid': hasInvalidValue,
           })}
           value={typeof conditionValue === 'string' ? conditionValue : ''}
+          placeholder="Enter a value"
           onChange={e => handleRightHandValueChange(e.target.value)}
         />
         {columnToggle}
