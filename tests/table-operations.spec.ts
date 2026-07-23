@@ -259,7 +259,7 @@ test('conditional format', async ({ page }) => {
     // Open and verify the combined state loads correctly, then re-save.
     const formattingRule = page.locator('.formatting-item');
     const editor = page.locator('.conditional-format-editor').first();
-    const conditionPicker = page.locator('data-testid=condition-select');
+    const conditionPicker = editor.locator('data-testid=condition-select');
     const highlightCell = editor.getByRole('button', { name: 'Conditional' });
     const doneButton = editor.getByRole('button', { name: 'Done' });
 
@@ -269,19 +269,15 @@ test('conditional format', async ({ page }) => {
     // Verify the RHV column combobox is visible (cross-column mode loaded)
     await expect(conditionPicker).toBeVisible();
     await expect(
-      page.locator('.condition-editor').getByRole('combobox')
+      editor.locator('.condition-editor').getByRole('combobox')
     ).toBeVisible();
 
     // Verify multiple column tags are shown in the Apply to Columns MultiSelect
     await expect(
-      page
-        .locator('.conditional-format-editor .dh-multi-select-trigger')
-        .getByText('Int')
+      editor.locator('.dh-multi-select-trigger').getByText('Int')
     ).toBeVisible();
     await expect(
-      page
-        .locator('.conditional-format-editor .dh-multi-select-trigger')
-        .getByText('Double')
+      editor.locator('.dh-multi-select-trigger').getByText('Double')
     ).toBeVisible();
 
     await doneButton.click();
