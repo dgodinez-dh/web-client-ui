@@ -205,11 +205,10 @@ test('conditional format', async ({ page }) => {
 
   await test.step('Cross-column comparison', async () => {
     const formattingRule = page.locator('.formatting-item');
+    const editor = page.locator('.conditional-format-editor').first();
     const conditionPicker = page.locator('data-testid=condition-select');
-    const highlightCell = page
-      .locator('.conditional-format-editor')
-      .getByRole('button', { name: 'Conditional' });
-    const doneButton = page.getByRole('button', { name: 'Done' });
+    const highlightCell = editor.getByRole('button', { name: 'Conditional' });
+    const doneButton = editor.getByRole('button', { name: 'Done' });
 
     await formattingRule.click();
     await highlightCell.click();
@@ -231,10 +230,9 @@ test('conditional format', async ({ page }) => {
 
   await test.step('Multiple formatted columns', async () => {
     const formattingRule = page.locator('.formatting-item');
-    const highlightCell = page
-      .locator('.conditional-format-editor')
-      .getByRole('button', { name: 'Conditional' });
-    const doneButton = page.getByRole('button', { name: 'Done' });
+    const editor = page.locator('.conditional-format-editor').first();
+    const highlightCell = editor.getByRole('button', { name: 'Conditional' });
+    const doneButton = editor.getByRole('button', { name: 'Done' });
 
     await formattingRule.click();
     await highlightCell.click();
@@ -248,7 +246,7 @@ test('conditional format', async ({ page }) => {
       .fill('Double');
     await expect(page.locator('[data-key="Double"]')).toBeVisible();
     await page.keyboard.press('ArrowDown'); // Focus first option in the listbox
-    await page.keyboard.press(' '); // Toggle/select the focused option
+    await page.keyboard.press('Enter'); // Toggle/select the focused option
     await page.keyboard.press('Escape');
 
     await doneButton.click();
@@ -260,11 +258,10 @@ test('conditional format', async ({ page }) => {
     // At this point the rule has both: cross-column comparison AND multiple formatted columns.
     // Open and verify the combined state loads correctly, then re-save.
     const formattingRule = page.locator('.formatting-item');
+    const editor = page.locator('.conditional-format-editor').first();
     const conditionPicker = page.locator('data-testid=condition-select');
-    const highlightCell = page
-      .locator('.conditional-format-editor')
-      .getByRole('button', { name: 'Conditional' });
-    const doneButton = page.getByRole('button', { name: 'Done' });
+    const highlightCell = editor.getByRole('button', { name: 'Conditional' });
+    const doneButton = editor.getByRole('button', { name: 'Done' });
 
     await formattingRule.click();
     await highlightCell.click();
