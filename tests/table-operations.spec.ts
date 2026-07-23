@@ -239,12 +239,16 @@ test('conditional format', async ({ page }) => {
     await formattingRule.click();
     await highlightCell.click();
 
-    // Open the "Apply to Columns" MultiSelect and add Double to the selection
-    await page.locator('.dh-multi-select-trigger').click();
-    await expect(
-      page.getByRole('option', { name: 'Double', exact: true })
-    ).toBeVisible();
-    await page.getByRole('option', { name: 'Double', exact: true }).click();
+    // Open the "Apply to Columns" MultiSelect, filter to Double, then select it.
+    // Use keyboard (ArrowDown + Space) to avoid DOM stability issues caused by
+    // continuous re-renders during filtering.
+    await page
+      .locator('.conditional-format-editor .dh-multi-select-input')
+      .first()
+      .fill('Double');
+    await expect(page.locator('[data-key="Double"]')).toBeVisible();
+    await page.keyboard.press('ArrowDown'); // Focus first option in the listbox
+    await page.keyboard.press(' '); // Toggle/select the focused option
     await page.keyboard.press('Escape');
 
     await doneButton.click();
@@ -273,10 +277,14 @@ test('conditional format', async ({ page }) => {
 
     // Verify multiple column tags are shown in the Apply to Columns MultiSelect
     await expect(
-      page.locator('.dh-multi-select-trigger').getByText('Int')
+      page
+        .locator('.conditional-format-editor .dh-multi-select-trigger')
+        .getByText('Int')
     ).toBeVisible();
     await expect(
-      page.locator('.dh-multi-select-trigger').getByText('Double')
+      page
+        .locator('.conditional-format-editor .dh-multi-select-trigger')
+        .getByText('Double')
     ).toBeVisible();
 
     await doneButton.click();
