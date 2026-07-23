@@ -238,12 +238,12 @@ test('conditional format', async ({ page }) => {
     await highlightCell.click();
 
     // Open the "Apply to Columns" MultiSelect, filter to Double, then select it.
-    // Use keyboard (ArrowDown + Space) to avoid DOM stability issues caused by
-    // continuous re-renders during filtering.
-    await page
-      .locator('.conditional-format-editor .dh-multi-select-input')
-      .first()
-      .fill('Double');
+    // Use click + pressSequentially (not fill) to ensure React's synthetic input
+    // event fires reliably in all browsers, then keyboard-select to avoid DOM
+    // stability issues during filtering.
+    const multiSelectInput = editor.locator('.dh-multi-select-input').first();
+    await multiSelectInput.click();
+    await multiSelectInput.pressSequentially('Double');
     await expect(page.locator('[data-key="Double"]')).toBeVisible();
     await page.keyboard.press('ArrowDown'); // Focus first option in the listbox
     await page.keyboard.press('Enter'); // Toggle/select the focused option
