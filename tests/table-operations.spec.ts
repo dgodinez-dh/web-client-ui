@@ -205,12 +205,13 @@ test('conditional format', async ({ page }) => {
 
   await test.step('Cancel', async () => {
     const formattingRule = page.locator('.formatting-item');
-    const conditionSelect = page.locator('data-testid=condition-select');
+    const conditionPicker = page.locator('data-testid=condition-select');
 
-    await expect(conditionSelect).toHaveCount(0);
+    await expect(conditionPicker).toHaveCount(0);
 
     await formattingRule.click();
-    await conditionSelect.selectOption('is-null');
+    await conditionPicker.click();
+    await page.getByRole('option', { name: 'is null' }).click();
     await page
       .locator('.conditional-format-editor')
       .getByRole('button', { name: 'Cancel' })
