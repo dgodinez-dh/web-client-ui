@@ -203,6 +203,81 @@ test('conditional format', async ({ page }) => {
     await expect(page.locator('.iris-grid-column')).toHaveScreenshot();
   });
 
+  await test.step('Cross-column comparison', async () => {
+    const formattingRule = page.locator('.formatting-item');
+    const conditionPicker = page.locator('data-testid=condition-select');
+    const highlightCell = page.getByRole('button', { name: 'Conditional' });
+    const doneButton = page.getByRole('button', { name: 'Done' });
+
+    await formattingRule.click();
+    await highlightCell.click();
+
+    // Pick "is equal to" from the Cross-Column section of the condition picker.
+    // The same label appears in both Value (index 0) and Cross-Column (index 1).
+    await conditionPicker.click();
+    await page.getByRole('option', { name: 'is equal to' }).nth(1).click();
+
+    // Verify the RHV column picker is visible, confirming cross-column mode is active
+    await expect(
+      page.locator('.condition-editor').getByRole('combobox')
+    ).toBeVisible();
+
+    await doneButton.click();
+    await waitForLoadingDone(page);
+    await expect(page.locator('.iris-grid-column')).toHaveScreenshot();
+  });
+
+  await test.step('Multiple formatted columns', async () => {
+    const formattingRule = page.locator('.formatting-item');
+    const highlightCell = page.getByRole('button', { name: 'Conditional' });
+    const doneButton = page.getByRole('button', { name: 'Done' });
+
+    await formattingRule.click();
+    await highlightCell.click();
+
+    // Open the "Apply to Columns" MultiSelect and add Double to the selection
+    await page.locator('.dh-multi-select-trigger').click();
+    await expect(
+      page.getByRole('option', { name: 'Double', exact: true })
+    ).toBeVisible();
+    await page.getByRole('option', { name: 'Double', exact: true }).click();
+    await page.keyboard.press('Escape');
+
+    await doneButton.click();
+    await waitForLoadingDone(page);
+    await expect(page.locator('.iris-grid-column')).toHaveScreenshot();
+  });
+
+  await test.step('Cross-column comparison with multiple formatted columns', async () => {
+    // At this point the rule has both: cross-column comparison AND multiple formatted columns.
+    // Open and verify the combined state loads correctly, then re-save.
+    const formattingRule = page.locator('.formatting-item');
+    const conditionPicker = page.locator('data-testid=condition-select');
+    const highlightCell = page.getByRole('button', { name: 'Conditional' });
+    const doneButton = page.getByRole('button', { name: 'Done' });
+
+    await formattingRule.click();
+    await highlightCell.click();
+
+    // Verify the RHV column combobox is visible (cross-column mode loaded)
+    await expect(conditionPicker).toBeVisible();
+    await expect(
+      page.locator('.condition-editor').getByRole('combobox')
+    ).toBeVisible();
+
+    // Verify multiple column tags are shown in the Apply to Columns MultiSelect
+    await expect(
+      page.locator('.dh-multi-select-trigger').getByText('Int')
+    ).toBeVisible();
+    await expect(
+      page.locator('.dh-multi-select-trigger').getByText('Double')
+    ).toBeVisible();
+
+    await doneButton.click();
+    await waitForLoadingDone(page);
+    await expect(page.locator('.iris-grid-column')).toHaveScreenshot();
+  });
+
   await test.step('Cancel', async () => {
     const formattingRule = page.locator('.formatting-item');
     const conditionPicker = page.locator('data-testid=condition-select');
