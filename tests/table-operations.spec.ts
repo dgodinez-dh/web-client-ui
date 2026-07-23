@@ -206,7 +206,9 @@ test('conditional format', async ({ page }) => {
   await test.step('Cross-column comparison', async () => {
     const formattingRule = page.locator('.formatting-item');
     const conditionPicker = page.locator('data-testid=condition-select');
-    const highlightCell = page.getByRole('button', { name: 'Conditional' });
+    const highlightCell = page
+      .locator('.conditional-format-editor')
+      .getByRole('button', { name: 'Conditional' });
     const doneButton = page.getByRole('button', { name: 'Done' });
 
     await formattingRule.click();
@@ -229,7 +231,9 @@ test('conditional format', async ({ page }) => {
 
   await test.step('Multiple formatted columns', async () => {
     const formattingRule = page.locator('.formatting-item');
-    const highlightCell = page.getByRole('button', { name: 'Conditional' });
+    const highlightCell = page
+      .locator('.conditional-format-editor')
+      .getByRole('button', { name: 'Conditional' });
     const doneButton = page.getByRole('button', { name: 'Done' });
 
     await formattingRule.click();
@@ -253,7 +257,9 @@ test('conditional format', async ({ page }) => {
     // Open and verify the combined state loads correctly, then re-save.
     const formattingRule = page.locator('.formatting-item');
     const conditionPicker = page.locator('data-testid=condition-select');
-    const highlightCell = page.getByRole('button', { name: 'Conditional' });
+    const highlightCell = page
+      .locator('.conditional-format-editor')
+      .getByRole('button', { name: 'Conditional' });
     const doneButton = page.getByRole('button', { name: 'Done' });
 
     await formattingRule.click();
