@@ -40,9 +40,10 @@ async function changeCondFormatComparison(
   );
   if (column !== '') {
     await columnCombo.fill(column);
-    await expect(page.getByRole('option')).toHaveCount(2); // This 2 is no good! What to do about columns with similar name
+    await expect(
+      page.getByRole('option', { name: column, exact: true })
+    ).toBeVisible();
     await page.getByRole('option', { name: column, exact: true }).click();
-    // await page.getByRole('option', { name: column }).click();
 
     await page.locator('.style-editor').click();
     await page
