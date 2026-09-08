@@ -214,8 +214,9 @@ class GridSelectionMouseHandler extends GridMouseHandler {
       return false;
     }
 
-    // Double-click behaves as a plain click at the target: replace selection.
-    grid.handleMouseSelectStart({ row, column }, 'replace');
+    // dblclick has no follow-up mouseUp to settle a mouse gesture; use the
+    // settled path so selectedKeys / selectedKeyValues aren't left empty.
+    grid.handleKeySelectAt({ row, column }, 'replace');
 
     return true;
   }
@@ -235,7 +236,9 @@ class GridSelectionMouseHandler extends GridMouseHandler {
     if (!isInRange && row != null && column != null) {
       this.startPoint = undefined;
       this.stopTimer();
-      grid.handleMouseSelectStart({ row, column }, 'replace');
+      // Right-click's mouseUp already fired before contextmenu; use the
+      // settled path so the menu operates on a fully committed selection.
+      grid.handleKeySelectAt({ row, column }, 'replace');
     }
 
     return false;
