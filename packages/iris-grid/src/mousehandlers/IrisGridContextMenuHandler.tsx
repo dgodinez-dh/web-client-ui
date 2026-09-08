@@ -938,17 +938,24 @@ class IrisGridContextMenuHandler extends GridMouseHandler {
       effectiveSelection = gridSelection;
     } else if (rowIndex != null && columnIndex != null) {
       if (isKeyedGridModel(model) && modelRow != null) {
-        // Construct a committed single-row KeyedSelection from the model's key columns.
-        const getModel = () => model as IrisGridModel & KeyedGridModel;
-        const keyIndices = model.selectionKeyColumnIndices;
-        const values = keyIndices.map(i => model.valueForCell(i, modelRow));
-        const key = serializeKeyValues(values);
-        const keyValues = new Map<string, readonly unknown[]>([[key, values]]);
-        effectiveSelection = new KeyedSelection({
-          getModel: getModel as GetKeyedModel,
-          selectedKeys: new Set([key]),
-          selectedKeyValues: keyValues,
-        });
+        if (model.isKeyableRow(rowIndex)) {
+          // Construct a committed single-row KeyedSelection from the model's key columns.
+          const getModel = () => model as IrisGridModel & KeyedGridModel;
+          const keyIndices = model.selectionKeyColumnIndices;
+          const values = keyIndices.map(i => model.valueForCell(i, modelRow));
+          const key = serializeKeyValues(values);
+          const keyValues = new Map<string, readonly unknown[]>([
+            [key, values],
+          ]);
+          effectiveSelection = new KeyedSelection({
+            getModel: getModel as GetKeyedModel,
+            selectedKeys: new Set([key]),
+            selectedKeyValues: keyValues,
+          });
+        } else {
+          // Totals / aggregation row on a keyed table — not keyable.
+          effectiveSelection = null;
+        }
       } else if (isEditableGridModel(model) && model.isEditable) {
         // Input tables: single-cell selection (editable rows are cell-granular).
         effectiveSelection = new RangedSelection(

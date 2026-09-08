@@ -14,6 +14,7 @@ const mockModel = {
   rowCount: ROW_COUNT,
   valueForCell: (_col: number, row: number) => row,
   viewport: { top: 0, bottom: ROW_COUNT - 1 },
+  isKeyableRow: (_row: number) => true,
 };
 
 const getKeyedModel: GetKeyedModel = () => mockModel as never;
@@ -829,5 +830,74 @@ describe('withToggledRow', () => {
     const sel = singleRow(2).withToggledRow(4);
     expect(sel.isRowSelected(2)).toBe(true);
     expect(sel.isRowSelected(4)).toBe(true);
+  });
+});
+
+// ─── non-keyable rows (totals / aggregation) ────────────────────────────────
+// Model where `nonKeyableRows` are excluded from keyed selection (totals rows).
+
+function getModelWithNonKeyable(
+  nonKeyableRows: readonly number[]
+): GetKeyedModel {
+  const skip = new Set(nonKeyableRows);
+  return (() =>
+    ({
+      ...mockModel,
+      isKeyableRow: (row: number) => !skip.has(row),
+    }) as never) as GetKeyedModel;
+}
+
+describe('non-keyable rows', () => {
+  it('isRowSelected returns false for a non-keyable row even when selected via inverted', () => {
+    const getModel = getModelWithNonKeyable([99]);
+    const sel = new KeyedSelection({ getModel, invertedSelection: true });
+    expect(sel.isRowSelected(99)).toBe(false);
+    expect(sel.isRowSelected(5)).toBe(true);
+  });
+
+  it('commitGesture on a single-row overlay of a non-keyable row leaves selectedKeys empty', () => {
+    const getModel = getModelWithNonKeyable([99]);
+    const withOverlay = new KeyedSelection({
+      getModel,
+      overlayRanges: [new GridRange(null, 99, null, 99)],
+    });
+    const result = withOverlay.commitGesture(KeyedSelection.empty(getModel), {
+      autoSelectRow: true,
+    });
+    expect(result.selectedKeys.size).toBe(0);
+    expect(result.selectedKeyValues.size).toBe(0);
+  });
+
+  it('commitGesture on a multi-row overlay spanning keyable + non-keyable rows only commits keyable rows', () => {
+    const getModel = getModelWithNonKeyable([7]);
+    const priorCommit = KeyedSelection.empty(getModel);
+    const withOverlay = new KeyedSelection({
+      getModel,
+      overlayRanges: [new GridRange(null, 5, null, 8)],
+      selectedKeys: new Set(),
+    });
+    const result = withOverlay.commitGesture(priorCommit, {
+      autoSelectRow: true,
+    });
+    expect(result.selectedKeys.has(keyOf(5))).toBe(true);
+    expect(result.selectedKeys.has(keyOf(6))).toBe(true);
+    expect(result.selectedKeys.has(keyOf(7))).toBe(false);
+    expect(result.selectedKeys.has(keyOf(8))).toBe(true);
+  });
+
+  it('withCommittedRanges skips non-keyable rows', () => {
+    const getModel = getModelWithNonKeyable([7]);
+    const sel = KeyedSelection.empty(getModel).withCommittedRanges([
+      new GridRange(null, 5, null, 8),
+    ]);
+    expect(sel.selectedKeys.has(keyOf(5))).toBe(true);
+    expect(sel.selectedKeys.has(keyOf(7))).toBe(false);
+    expect(sel.selectedKeys.has(keyOf(8))).toBe(true);
+  });
+
+  it('withToggledRow on a non-keyable row is a no-op', () => {
+    const getModel = getModelWithNonKeyable([99]);
+    const sel = KeyedSelection.empty(getModel);
+    expect(sel.withToggledRow(99)).toBe(sel);
   });
 });

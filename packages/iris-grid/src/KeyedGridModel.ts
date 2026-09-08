@@ -1,5 +1,5 @@
 import type { dh as DhType } from '@deephaven/jsapi-types';
-import type { GridRange, ModelIndex } from '@deephaven/grid';
+import type { GridRange, ModelIndex, VisibleIndex } from '@deephaven/grid';
 
 /** Model that exposes key-column metadata for selection purposes. */
 export interface KeyedGridModel {
@@ -9,6 +9,13 @@ export interface KeyedGridModel {
   readonly hasUniqueSelectionKeys: boolean;
   /** Current viewport row bounds; used to clamp gesture-key enumeration to visible rows. */
   readonly viewport: { top: number; bottom: number } | null;
+
+  /**
+   * True when `row` participates in keyed selection. False for synthetic
+   * rows (totals / aggregation floating rows) whose column values are
+   * aggregates rather than real row keys.
+   */
+  isKeyableRow: (row: VisibleIndex) => boolean;
 
   /**
    * Snapshots rows matching the given key values.

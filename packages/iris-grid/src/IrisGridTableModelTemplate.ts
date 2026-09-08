@@ -268,6 +268,12 @@ class IrisGridTableModelTemplate<
     return (this.table as DhType.Table).getAttribute?.('uniqueKeys') === 'true';
   }
 
+  // Totals rows have aggregate column values (not real row keys), so exclude
+  // them from keyed selection to keep copy / download filters meaningful.
+  isKeyableRow(row: VisibleIndex): boolean {
+    return !this.isTotalsRow(row);
+  }
+
   close(): void {
     this.table.close();
     if (this.totalsTable !== null) {

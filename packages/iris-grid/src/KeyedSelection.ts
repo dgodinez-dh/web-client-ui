@@ -180,7 +180,8 @@ export class KeyedSelection implements Selection {
         const clampedStart = Math.max(startRow, viewTop);
         const clampedEnd = Math.min(last, viewBottom);
         for (let r = clampedStart; r <= clampedEnd; r += 1) {
-          keys.add(this.getRowKeyData(r).key);
+          const data = this.getRowKeyData(r);
+          if (data != null) keys.add(data.key);
         }
       }
       this.gestureKeys = keys;
@@ -213,12 +214,17 @@ export class KeyedSelection implements Selection {
     });
   }
 
-  /** Returns both the serialized key and the raw values for a visible row. */
+  /**
+   * Returns both the serialized key and the raw values for a visible row, or
+   * `null` when the row is not keyable (e.g. totals / aggregation floating
+   * rows whose column values are aggregates, not real row keys).
+   */
   private getRowKeyData(row: VisibleIndex): {
     key: string;
     values: readonly unknown[];
-  } {
+  } | null {
     const model = this.getModel();
+    if (model.isKeyableRow(row) !== true) return null;
     const values = model.selectionKeyColumnIndices.map((col: ModelIndex) =>
       model.valueForCell(col, row)
     );
@@ -239,7 +245,9 @@ export class KeyedSelection implements Selection {
   }
 
   isRowSelected(row: VisibleIndex): boolean {
-    const { key } = this.getRowKeyData(row);
+    const data = this.getRowKeyData(row);
+    if (data == null) return false;
+    const { key } = data;
     if (this.invertedSelection) return !this.selectedKeys.has(key);
     // Include gesture preview keys so key-siblings highlight on mousedown without waiting for commit.
     return this.selectedKeys.has(key) || this.gestureKeys.has(key);
@@ -280,7 +288,7 @@ export class KeyedSelection implements Selection {
     column: VisibleIndex | null
   ): KeyedSelection {
     if (row === this.cursorRow && column === this.cursorColumn) return this;
-    const nextKey = row != null ? this.getRowKeyData(row).key : null;
+    const nextKey = row != null ? this.getRowKeyData(row)?.key ?? null : null;
     return this.copyWith({
       cursorKey: nextKey,
       cursorRowHint: row,
@@ -295,7 +303,7 @@ export class KeyedSelection implements Selection {
     if (row === this.selectionEndRow && column === this.selectionEndColumn) {
       return this;
     }
-    const nextKey = row != null ? this.getRowKeyData(row).key : null;
+    const nextKey = row != null ? this.getRowKeyData(row)?.key ?? null : null;
     return this.copyWith({
       selectionEndKey: nextKey,
       selectionEndRowHint: row,
@@ -338,7 +346,7 @@ export class KeyedSelection implements Selection {
    * keyboard extend) to the row's key. Passing `null` clears the anchor.
    */
   private withGestureAnchor(row: GridRangeIndex): KeyedSelection {
-    const nextKey = row != null ? this.getRowKeyData(row).key : null;
+    const nextKey = row != null ? this.getRowKeyData(row)?.key ?? null : null;
     if (nextKey === this.anchorKey && row === this.anchorRow) return this;
     return this.copyWith({ anchorKey: nextKey, anchorRow: row });
   }
@@ -382,7 +390,8 @@ export class KeyedSelection implements Selection {
     let best: VisibleIndex | null = null;
     let bestDist = Infinity;
     for (let r = viewTop; r <= viewBottom; r += 1) {
-      if (this.getRowKeyData(r).key !== key) continue; // eslint-disable-line no-continue
+      const data = this.getRowKeyData(r);
+      if (data == null || data.key !== key) continue; // eslint-disable-line no-continue
       if (hint == null) return r;
       const dist = Math.abs(r - hint);
       if (dist < bestDist) {
@@ -501,7 +510,9 @@ export class KeyedSelection implements Selection {
         if (startRow == null) continue; // eslint-disable-line no-continue
         const rEnd = endRow ?? startRow;
         for (let r = startRow; r <= rEnd; r += 1) {
-          const { key: k, values } = this.getRowKeyData(r);
+          const data = this.getRowKeyData(r);
+          if (data == null) continue; // eslint-disable-line no-continue
+          const { key: k, values } = data;
           if (shouldToggle) {
             // Toggle off: every overlay row was already in lastCommitted, so
             // ctrl+click / ctrl+drag flips them off.
@@ -548,8 +559,9 @@ export class KeyedSelection implements Selection {
       if (first >= viewTop && lastRow <= viewBottom) {
         const nextKeyValues = new Map<string, readonly unknown[]>();
         for (let r = first; r <= lastRow; r += 1) {
-          const { key: k, values } = this.getRowKeyData(r);
-          nextKeyValues.set(k, values);
+          const data = this.getRowKeyData(r);
+          if (data == null) continue; // eslint-disable-line no-continue
+          nextKeyValues.set(data.key, data.values);
         }
         return withCommittedCursor(
           this.copyWith({
@@ -581,7 +593,17 @@ export class KeyedSelection implements Selection {
 
     // Single-row path (rowCount === 1): first === lastRow.
     const row = first;
-    const { key: k, values } = this.getRowKeyData(row);
+    const data = this.getRowKeyData(row);
+    if (data == null) {
+      // Row is not keyable (totals / aggregation row); commit clears the
+      // overlay without touching the keyed set.
+      return withCommittedCursor(
+        this.copyWith({ overlayRanges: EMPTY_ARRAY }),
+        this.getCursorLandingCell(),
+        opts
+      );
+    }
+    const { key: k, values } = data;
     const nextKeyValues = new Map(this.selectedKeyValues);
     // Deselect only when the clicked row was the entire previous committed selection.
     const wasEntireSelection =
@@ -694,9 +716,10 @@ export class KeyedSelection implements Selection {
         const low = Math.min(startRow, rEnd);
         const high = Math.max(startRow, rEnd);
         for (let r = low; r <= high; r += 1) {
-          const { key: k, values } = this.getRowKeyData(r);
-          next.add(k);
-          nextKeyValues.set(k, values);
+          const data = this.getRowKeyData(r);
+          if (data == null) continue; // eslint-disable-line no-continue
+          next.add(data.key);
+          nextKeyValues.set(data.key, data.values);
         }
       }
       return new KeyedSelection({
@@ -773,7 +796,9 @@ export class KeyedSelection implements Selection {
 
   /** Returns a new selection with the given row's key toggled. */
   withToggledRow(row: VisibleIndex): KeyedSelection {
-    const { key, values } = this.getRowKeyData(row);
+    const data = this.getRowKeyData(row);
+    if (data == null) return this;
+    const { key, values } = data;
     const next = new Set(this.selectedKeys);
     const nextKeyValues = new Map(this.selectedKeyValues);
     if (next.has(key)) {
