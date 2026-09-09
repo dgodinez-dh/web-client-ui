@@ -81,6 +81,7 @@ import {
   type CellInputRendererRegistry,
   type CellInputProps,
 } from './GridRendererTypes';
+import GridA11yFallback, { type GridDrawListener } from './GridA11yFallback';
 
 type LegacyCanvasRenderingContext2D = CanvasRenderingContext2D & {
   webkitBackingStorePixelRatio?: number;
@@ -355,7 +356,10 @@ class Grid extends PureComponent<GridProps, GridState> {
 
   metrics: GridMetrics | null;
 
-  renderState: GridRenderState;
+  private renderState: GridRenderState | null;
+
+  // Listeners for when the grid draws its canvas.
+  private drawListeners: Set<GridDrawListener>;
 
   // Track the cursor that is currently added to the document
   // Add to document so that when dragging the cursor stays, even if mouse leaves the canvas
@@ -394,6 +398,7 @@ class Grid extends PureComponent<GridProps, GridState> {
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.handleWheel = this.handleWheel.bind(this);
+    this.registerDrawListener = this.registerDrawListener.bind(this);
     this.getSelectedRanges = this.getSelectedRanges.bind(this);
 
     const {
@@ -417,7 +422,9 @@ class Grid extends PureComponent<GridProps, GridState> {
     this.prevMetrics = null;
     this.metrics = null;
 
-    this.renderState = {} as GridRenderState;
+    this.renderState = null;
+
+    this.drawListeners = new Set();
 
     // Track the cursor that is currently added to the document
     // Add to document so that when dragging the cursor stays, even if mouse leaves the canvas
@@ -1071,6 +1078,24 @@ class Grid extends PureComponent<GridProps, GridState> {
         selectedRanges: selectedRanges.slice(selectedRanges.length - 1),
       });
     }
+  }
+
+  /**
+   * Listen for the grid finishing a draw of its canvas. Called immediately with
+   * the most recent draw if the grid has already drawn.
+   * @param listener Called with the state that was drawn
+   * @returns A function to stop listening
+   */
+  private registerDrawListener(listener: GridDrawListener): () => void {
+    this.drawListeners.add(listener);
+
+    if (this.renderState !== null) {
+      listener(this.renderState);
+    }
+
+    return () => {
+      this.drawListeners.delete(listener);
+    };
   }
 
   /** Gets the selected ranges */
@@ -1773,12 +1798,17 @@ class Grid extends PureComponent<GridProps, GridState> {
     if (!this.canvasContext) throw new Error('context not set');
 
     const { renderer, canvasContext: context, renderState } = this;
+    assertNotNull(renderState);
 
     context.save();
 
     renderer.drawCanvas(renderState);
 
     context.restore();
+
+    this.drawListeners.forEach(listener => {
+      listener(renderState);
+    });
   }
 
   /**
@@ -2468,7 +2498,7 @@ class Grid extends PureComponent<GridProps, GridState> {
           onMouseLeave={this.handleMouseLeave}
           tabIndex={0}
         >
-          Your browser does not support HTML canvas. Update your browser?
+          <GridA11yFallback registerDrawListener={this.registerDrawListener} />
         </canvas>
         {this.renderInputField()}
         {children}
