@@ -270,6 +270,7 @@ class IrisGridTableModelTemplate<
 
   // Totals rows have aggregate column values (not real row keys), so exclude
   // them from keyed selection to keep copy / download filters meaningful.
+  // Follow up to design how this should work is DH-23589
   isKeyableRow(row: VisibleIndex): boolean {
     return !this.isTotalsRow(row);
   }
