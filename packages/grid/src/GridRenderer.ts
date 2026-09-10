@@ -819,7 +819,7 @@ export class GridRenderer {
     row: VisibleIndex
   ): void {
     const { metrics, selection, theme } = state;
-    const { allRowHeights, allRowYs, maxX } = metrics;
+    const { allRowHeights, allRowYs, columnsForRender, maxX } = metrics;
 
     const y = getOrThrow(allRowYs, row);
     const rowHeight = getOrThrow(allRowHeights, row);
@@ -827,9 +827,13 @@ export class GridRenderer {
     if (theme.rowHoverBackgroundColor != null) {
       context.fillStyle = theme.rowHoverBackgroundColor;
     }
-    if (selection.isRowSelected(row)) {
-      if (theme.selectedRowHoverBackgroundColor != null) {
-        context.fillStyle = theme.selectedRowHoverBackgroundColor;
+    // A selected cell promotes the whole row to the selected hover background color.
+    if (theme.selectedRowHoverBackgroundColor != null) {
+      for (let i = 0; i < columnsForRender.length; i += 1) {
+        if (selection.isCellSelected(columnsForRender[i], row)) {
+          context.fillStyle = theme.selectedRowHoverBackgroundColor;
+          break;
+        }
       }
     }
     context.fillRect(0, y, maxX, rowHeight);
