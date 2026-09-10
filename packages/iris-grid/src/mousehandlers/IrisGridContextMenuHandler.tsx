@@ -62,19 +62,14 @@ import {
 import './IrisGridContextMenuHandler.scss';
 import SHORTCUTS from '../IrisGridShortcuts';
 import type IrisGrid from '../IrisGrid';
-import type IrisGridModel from '../IrisGridModel';
 import {
   snapshotFromSelection,
   computeVisibleColumns,
 } from '../IrisGridSelectionUtils';
 import { type QuickFilter } from '../CommonTypes';
 import { isPartitionedGridModel } from '../PartitionedGridModel';
-import { isKeyedGridModel, type KeyedGridModel } from '../KeyedGridModel';
-import {
-  KeyedSelection,
-  type GetKeyedModel,
-  serializeKeyValues,
-} from '../KeyedSelection';
+import { isKeyedGridModel } from '../KeyedGridModel';
+import { KeyedSelection, serializeKeyValues } from '../KeyedSelection';
 import IrisGridUtils from '../IrisGridUtils';
 
 const log = Log.module('IrisGridContextMenuHandler');
@@ -940,7 +935,7 @@ class IrisGridContextMenuHandler extends GridMouseHandler {
       if (isKeyedGridModel(model) && modelRow != null) {
         if (model.isKeyableRow(rowIndex)) {
           // Construct a committed single-row KeyedSelection from the model's key columns.
-          const getModel = () => model as IrisGridModel & KeyedGridModel;
+          const getModel = () => model;
           const keyIndices = model.selectionKeyColumnIndices;
           const values = keyIndices.map(i => model.valueForCell(i, modelRow));
           const key = serializeKeyValues(values);
@@ -948,7 +943,7 @@ class IrisGridContextMenuHandler extends GridMouseHandler {
             [key, values],
           ]);
           effectiveSelection = new KeyedSelection({
-            getModel: getModel as GetKeyedModel,
+            getModel,
             selectedKeys: new Set([key]),
             selectedKeyValues: keyValues,
           });
