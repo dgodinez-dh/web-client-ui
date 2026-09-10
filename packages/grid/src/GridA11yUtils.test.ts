@@ -2,6 +2,17 @@ import { createGridA11ySnapshot, getGridA11ySummary } from './GridA11yUtils';
 import type GridMetrics from './GridMetrics';
 import GridRange from './GridRange';
 import MockGridModel from './MockGridModel';
+import { RangedSelection } from './RangedSelection';
+import type { GetModel } from './Selection';
+
+/** Wraps ranges in a `RangedSelection` so `getGridA11ySummary` / `createGridA11ySnapshot` receive the interface they expect. */
+function rangedSelection(
+  ranges: readonly GridRange[],
+  model: MockGridModel
+): RangedSelection {
+  const getModel: GetModel = () => model;
+  return new RangedSelection(ranges, getModel);
+}
 
 const COLUMN_WIDTH = 100;
 const ROW_HEIGHT = 20;
@@ -135,38 +146,59 @@ describe('getGridA11ySummary', () => {
 
   it('describes the number of selected cells', () => {
     const model = new MockGridModel({ rowCount: 100, columnCount: 3 });
-    expect(getGridA11ySummary(model, [new GridRange(0, 0, 0, 0)])).toBe(
-      'Grid with 100 rows and 3 columns. 1 cell selected.'
-    );
-    expect(getGridA11ySummary(model, [new GridRange(0, 0, 1, 1)])).toBe(
-      'Grid with 100 rows and 3 columns. 4 cells selected.'
-    );
+    expect(
+      getGridA11ySummary(
+        model,
+        rangedSelection([new GridRange(0, 0, 0, 0)], model)
+      )
+    ).toBe('Grid with 100 rows and 3 columns. 1 cell selected.');
+    expect(
+      getGridA11ySummary(
+        model,
+        rangedSelection([new GridRange(0, 0, 1, 1)], model)
+      )
+    ).toBe('Grid with 100 rows and 3 columns. 4 cells selected.');
   });
 
   it('describes whole row selections, which is what clicking a row gives', () => {
     const model = new MockGridModel({ rowCount: 100, columnCount: 3 });
-    expect(getGridA11ySummary(model, [new GridRange(null, 0, null, 0)])).toBe(
-      'Grid with 100 rows and 3 columns. 1 row selected.'
-    );
-    expect(getGridA11ySummary(model, [new GridRange(null, 0, null, 4)])).toBe(
-      'Grid with 100 rows and 3 columns. 5 rows selected.'
-    );
+    expect(
+      getGridA11ySummary(
+        model,
+        rangedSelection([new GridRange(null, 0, null, 0)], model)
+      )
+    ).toBe('Grid with 100 rows and 3 columns. 1 row selected.');
+    expect(
+      getGridA11ySummary(
+        model,
+        rangedSelection([new GridRange(null, 0, null, 4)], model)
+      )
+    ).toBe('Grid with 100 rows and 3 columns. 5 rows selected.');
   });
 
   it('describes whole column selections', () => {
     const model = new MockGridModel({ rowCount: 100, columnCount: 3 });
-    expect(getGridA11ySummary(model, [new GridRange(1, null, 1, null)])).toBe(
-      'Grid with 100 rows and 3 columns. 1 column selected.'
-    );
-    expect(getGridA11ySummary(model, [new GridRange(0, null, 2, null)])).toBe(
-      'Grid with 100 rows and 3 columns. 3 columns selected.'
-    );
+    expect(
+      getGridA11ySummary(
+        model,
+        rangedSelection([new GridRange(1, null, 1, null)], model)
+      )
+    ).toBe('Grid with 100 rows and 3 columns. 1 column selected.');
+    expect(
+      getGridA11ySummary(
+        model,
+        rangedSelection([new GridRange(0, null, 2, null)], model)
+      )
+    ).toBe('Grid with 100 rows and 3 columns. 3 columns selected.');
   });
 
   it('describes selecting the whole grid', () => {
     const model = new MockGridModel({ rowCount: 100, columnCount: 3 });
     expect(
-      getGridA11ySummary(model, [new GridRange(null, null, null, null)])
+      getGridA11ySummary(
+        model,
+        rangedSelection([new GridRange(null, null, null, null)], model)
+      )
     ).toBe('Grid with 100 rows and 3 columns. Everything selected.');
   });
 });
@@ -593,9 +625,11 @@ describe('createGridA11ySnapshot', () => {
 
   it('includes the selection in the description', () => {
     const model = new MockGridModel({ rowCount: 100, columnCount: 3 });
-    const snapshot = createGridA11ySnapshot(model, makeMetrics(), [
-      new GridRange(0, 0, 0, 0),
-    ]);
+    const snapshot = createGridA11ySnapshot(
+      model,
+      makeMetrics(),
+      rangedSelection([new GridRange(0, 0, 0, 0)], model)
+    );
 
     expect(snapshot.description).toBe(
       'Grid with 100 rows and 3 columns. 1 cell selected. Showing rows 1 to 2, columns 0, 1, 2.'

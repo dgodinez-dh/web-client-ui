@@ -44,6 +44,8 @@ export interface SelectionQueries {
   readonly selectionEndRow: VisibleIndex | null;
   /** Column of the last shift/drag endpoint, or `null` when unset. */
   readonly selectionEndColumn: VisibleIndex | null;
+  /** Brief human-readable summary of the selection. Used for a11y status. */
+  describe: () => string;
 }
 
 /**

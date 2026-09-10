@@ -196,6 +196,62 @@ describe('toRanges', () => {
   });
 });
 
+// ─── describe ────────────────────────────────────────────────────────────────
+
+describe('describe', () => {
+  it('reports empty selections', () => {
+    expect(empty().describe()).toBe('No selection.');
+  });
+
+  it('reports 1 cell for a single-cell selection', () => {
+    expect(single(0, 0).describe()).toBe('1 cell selected.');
+  });
+
+  it('reports the cell count for a bounded range', () => {
+    expect(range(0, 0, 1, 1).describe()).toBe('4 cells selected.');
+  });
+
+  it('reports 1 row for a full-row selection', () => {
+    expect(fullRow(0).describe()).toBe('1 row selected.');
+  });
+
+  it('reports the row count for a multi-row selection', () => {
+    const sel = new RangedSelection(
+      [new GridRange(null, 0, null, 4)],
+      getModel
+    );
+    expect(sel.describe()).toBe('5 rows selected.');
+  });
+
+  it('reports 1 column for a full-column selection', () => {
+    expect(fullColumn(0).describe()).toBe('1 column selected.');
+  });
+
+  it('reports the column count for a multi-column selection', () => {
+    const sel = new RangedSelection(
+      [new GridRange(0, null, 2, null)],
+      getModel
+    );
+    expect(sel.describe()).toBe('3 columns selected.');
+  });
+
+  it('reports "Everything selected." for a single unbounded range', () => {
+    const sel = new RangedSelection(
+      [new GridRange(null, null, null, null)],
+      getModel
+    );
+    expect(sel.describe()).toBe('Everything selected.');
+  });
+
+  it('reports the number of ranges when the shape is not summarizable', () => {
+    const sel = new RangedSelection(
+      [new GridRange(null, 0, null, 0), new GridRange(0, null, 0, null)],
+      getModel
+    );
+    expect(sel.describe()).toBe('2 selection ranges selected.');
+  });
+});
+
 // ─── getColumnTickRanges ─────────────────────────────────────────────────────
 
 describe('getColumnTickRanges', () => {

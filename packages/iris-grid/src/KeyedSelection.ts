@@ -239,6 +239,23 @@ export class KeyedSelection implements Selection {
     return this.selectedKeys.size === 0 && this.gestureKeys.size === 0;
   }
 
+  describe(): string {
+    if (this.pendingRanges.length > 0) return 'Selection loading.';
+    // Non-unique key columns can map one key to many rows; report the
+    // truthful count (keys) rather than lying about row counts.
+    const unit = this.getModel().hasUniqueSelectionKeys ? 'row' : 'key';
+    const n = this.selectedKeys.size;
+    if (this.invertedSelection) {
+      if (n === 0) return 'Everything selected.';
+      return unit === 'row'
+        ? `All rows except ${n} selected.`
+        : `All rows except ${n} ${n === 1 ? 'key' : 'keys'} selected.`;
+    }
+    if (n === 0) return 'No selection.';
+    if (n === 1) return unit === 'row' ? '1 row selected.' : '1 key selected.';
+    return unit === 'row' ? `${n} rows selected.` : `${n} keys selected.`;
+  }
+
   // Keyed selection is always full-row; column is irrelevant
   isCellSelected(_column: VisibleIndex, row: VisibleIndex): boolean {
     return this.isRowSelected(row);

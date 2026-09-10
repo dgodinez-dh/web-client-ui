@@ -901,3 +901,102 @@ describe('non-keyable rows', () => {
     expect(sel.withToggledRow(99)).toBe(sel);
   });
 });
+
+// ─── describe ────────────────────────────────────────────────────────────────
+
+/** Model with `hasUniqueSelectionKeys` overridden. */
+function getModelWithUniqueKeys(hasUnique: boolean): GetKeyedModel {
+  return (() =>
+    ({
+      ...mockModel,
+      hasUniqueSelectionKeys: hasUnique,
+    }) as never) as GetKeyedModel;
+}
+
+describe('describe', () => {
+  describe('unique keys', () => {
+    it('reports "No selection." for an empty selection', () => {
+      expect(empty().describe()).toBe('No selection.');
+    });
+
+    it('reports 1 row for a single-key selection', () => {
+      expect(singleRow(5).describe()).toBe('1 row selected.');
+    });
+
+    it('reports the row count for a multi-key selection', () => {
+      expect(multiRow().describe()).toBe('2 rows selected.');
+    });
+
+    it('reports "Everything selected." for an inverted selection with no exclusions', () => {
+      expect(allRows().describe()).toBe('Everything selected.');
+    });
+
+    it('reports "All rows except 1 selected." for an inverted selection with one exclusion', () => {
+      const getModel = getModelWithUniqueKeys(true);
+      const sel = new KeyedSelection({
+        getModel,
+        invertedSelection: true,
+        selectedKeys: new Set([keyOf(5)]),
+      });
+      expect(sel.describe()).toBe('All rows except 1 selected.');
+    });
+
+    it('reports "All rows except N selected." for an inverted selection with N exclusions', () => {
+      const getModel = getModelWithUniqueKeys(true);
+      const sel = new KeyedSelection({
+        getModel,
+        invertedSelection: true,
+        selectedKeys: new Set([keyOf(1), keyOf(2), keyOf(3)]),
+      });
+      expect(sel.describe()).toBe('All rows except 3 selected.');
+    });
+  });
+
+  describe('non-unique keys', () => {
+    it('reports 1 key for a single-key selection', () => {
+      const getModel = getModelWithUniqueKeys(false);
+      const sel = new KeyedSelection({
+        getModel,
+        selectedKeys: new Set([keyOf(5)]),
+      });
+      expect(sel.describe()).toBe('1 key selected.');
+    });
+
+    it('reports N keys for a multi-key selection', () => {
+      const getModel = getModelWithUniqueKeys(false);
+      const sel = new KeyedSelection({
+        getModel,
+        selectedKeys: new Set([keyOf(3), keyOf(7)]),
+      });
+      expect(sel.describe()).toBe('2 keys selected.');
+    });
+
+    it('reports "All rows except 1 key selected." for an inverted single-key selection', () => {
+      const getModel = getModelWithUniqueKeys(false);
+      const sel = new KeyedSelection({
+        getModel,
+        invertedSelection: true,
+        selectedKeys: new Set([keyOf(5)]),
+      });
+      expect(sel.describe()).toBe('All rows except 1 key selected.');
+    });
+
+    it('reports "All rows except N keys selected." for an inverted multi-key selection', () => {
+      const getModel = getModelWithUniqueKeys(false);
+      const sel = new KeyedSelection({
+        getModel,
+        invertedSelection: true,
+        selectedKeys: new Set([keyOf(1), keyOf(2), keyOf(3)]),
+      });
+      expect(sel.describe()).toBe('All rows except 3 keys selected.');
+    });
+  });
+
+  it('reports "Selection loading." while pendingRanges is non-empty', () => {
+    const sel = new KeyedSelection({
+      getModel: getKeyedModel,
+      pendingRanges: [new GridRange(null, 0, null, 10)],
+    });
+    expect(sel.describe()).toBe('Selection loading.');
+  });
+});

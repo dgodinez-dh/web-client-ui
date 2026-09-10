@@ -94,6 +94,31 @@ export class RangedSelection implements Selection, TickRangeSelection {
     return this.ranges.length === 0;
   }
 
+  describe(): string {
+    if (this.ranges.length === 0) return 'No selection.';
+    const cellCount = GridRange.cellCount(this.ranges);
+    if (!Number.isNaN(cellCount)) {
+      return cellCount === 1
+        ? '1 cell selected.'
+        : `${cellCount} cells selected.`;
+    }
+    // A range with no countable cells is unbounded in one direction, i.e. whole
+    // rows or whole columns, which is what clicking a row or column header gives.
+    const rowCount = GridRange.rowCount(this.ranges);
+    if (!Number.isNaN(rowCount)) {
+      return rowCount === 1 ? '1 row selected.' : `${rowCount} rows selected.`;
+    }
+    const columnCount = GridRange.columnCount(this.ranges);
+    if (!Number.isNaN(columnCount)) {
+      return columnCount === 1
+        ? '1 column selected.'
+        : `${columnCount} columns selected.`;
+    }
+    return this.ranges.length === 1
+      ? 'Everything selected.'
+      : `${this.ranges.length} selection ranges selected.`;
+  }
+
   isCellSelected(column: VisibleIndex, row: VisibleIndex): boolean {
     for (let i = 0; i < this.ranges.length; i += 1) {
       const range = this.ranges[i];
