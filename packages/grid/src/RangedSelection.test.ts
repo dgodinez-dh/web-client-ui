@@ -110,6 +110,39 @@ describe('isCellSelected', () => {
     expect(sel.isCellSelected(5, 5)).toBe(true);
     expect(sel.isCellSelected(1, 1)).toBe(false);
   });
+
+  // Each null boundary is independently unbounded on its side; a mixed range
+  // like (startRow=3, endRow=null) means "row >= 3", not "row 0".
+  describe('mixed null / non-null boundaries', () => {
+    it('treats null endRow as unbounded downward', () => {
+      const sel = new RangedSelection([new GridRange(0, 3, 0, null)], getModel);
+      expect(sel.isCellSelected(0, 2)).toBe(false);
+      expect(sel.isCellSelected(0, 3)).toBe(true);
+      expect(sel.isCellSelected(0, 5)).toBe(true);
+      expect(sel.isCellSelected(0, ROW_COUNT - 1)).toBe(true);
+    });
+
+    it('treats null startRow as unbounded upward', () => {
+      const sel = new RangedSelection([new GridRange(0, null, 0, 5)], getModel);
+      expect(sel.isCellSelected(0, 0)).toBe(true);
+      expect(sel.isCellSelected(0, 5)).toBe(true);
+      expect(sel.isCellSelected(0, 6)).toBe(false);
+    });
+
+    it('treats null endColumn as unbounded rightward', () => {
+      const sel = new RangedSelection([new GridRange(3, 0, null, 0)], getModel);
+      expect(sel.isCellSelected(2, 0)).toBe(false);
+      expect(sel.isCellSelected(3, 0)).toBe(true);
+      expect(sel.isCellSelected(COLUMN_COUNT - 1, 0)).toBe(true);
+    });
+
+    it('treats null startColumn as unbounded leftward', () => {
+      const sel = new RangedSelection([new GridRange(null, 0, 5, 0)], getModel);
+      expect(sel.isCellSelected(0, 0)).toBe(true);
+      expect(sel.isCellSelected(5, 0)).toBe(true);
+      expect(sel.isCellSelected(6, 0)).toBe(false);
+    });
+  });
 });
 
 // ─── isRowSelected ───────────────────────────────────────────────────────────
@@ -133,6 +166,26 @@ describe('isRowSelected', () => {
     const sel = range(0, 5, COLUMN_COUNT - 2, 5);
     expect(sel.isRowSelected(5)).toBe(false);
   });
+
+  it('treats a mixed null endRow boundary as unbounded downward', () => {
+    const sel = new RangedSelection(
+      [new GridRange(null, 3, null, null)],
+      getModel
+    );
+    expect(sel.isRowSelected(3)).toBe(true);
+    expect(sel.isRowSelected(ROW_COUNT - 1)).toBe(true);
+    expect(sel.isRowSelected(2)).toBe(false);
+  });
+
+  it('treats a mixed null startRow boundary as unbounded upward', () => {
+    const sel = new RangedSelection(
+      [new GridRange(null, null, null, 5)],
+      getModel
+    );
+    expect(sel.isRowSelected(0)).toBe(true);
+    expect(sel.isRowSelected(5)).toBe(true);
+    expect(sel.isRowSelected(6)).toBe(false);
+  });
 });
 
 // ─── isColumnSelected ────────────────────────────────────────────────────────
@@ -155,6 +208,26 @@ describe('isColumnSelected', () => {
   it('returns false when row bounds do not cover the full column', () => {
     const sel = range(5, 0, 5, ROW_COUNT - 2);
     expect(sel.isColumnSelected(5)).toBe(false);
+  });
+
+  it('treats a mixed null endColumn boundary as unbounded rightward', () => {
+    const sel = new RangedSelection(
+      [new GridRange(3, null, null, null)],
+      getModel
+    );
+    expect(sel.isColumnSelected(3)).toBe(true);
+    expect(sel.isColumnSelected(COLUMN_COUNT - 1)).toBe(true);
+    expect(sel.isColumnSelected(2)).toBe(false);
+  });
+
+  it('treats a mixed null startColumn boundary as unbounded leftward', () => {
+    const sel = new RangedSelection(
+      [new GridRange(null, null, 5, null)],
+      getModel
+    );
+    expect(sel.isColumnSelected(0)).toBe(true);
+    expect(sel.isColumnSelected(5)).toBe(true);
+    expect(sel.isColumnSelected(6)).toBe(false);
   });
 });
 

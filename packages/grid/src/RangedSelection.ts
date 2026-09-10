@@ -121,14 +121,7 @@ export class RangedSelection implements Selection, TickRangeSelection {
 
   isCellSelected(column: VisibleIndex, row: VisibleIndex): boolean {
     for (let i = 0; i < this.ranges.length; i += 1) {
-      const range = this.ranges[i];
-      const rowSelected =
-        range.startRow === null ||
-        (range.startRow <= row && row <= (range.endRow ?? 0));
-      const columnSelected =
-        range.startColumn === null ||
-        (range.startColumn <= column && column <= (range.endColumn ?? 0));
-      if (rowSelected && columnSelected) {
+      if (this.ranges[i].containsCell(column, row)) {
         return true;
       }
     }
@@ -139,14 +132,13 @@ export class RangedSelection implements Selection, TickRangeSelection {
     const { columnCount } = this.getModel();
     for (let i = 0; i < this.ranges.length; i += 1) {
       const range = this.ranges[i];
-      const rowInRange =
-        range.startRow === null ||
-        (range.startRow <= row && row <= (range.endRow ?? 0));
-      const allColumnsSelected =
-        range.startColumn === null ||
-        (range.startColumn === 0 &&
-          (range.endColumn ?? -1) === columnCount - 1);
-      if (rowInRange && allColumnsSelected) {
+      // A range covers the whole row when it contains both column endpoints
+      // at `row` — `GridRange` is a contiguous rectangle, so hitting both
+      // ends implies spanning the entire axis.
+      if (
+        range.containsCell(0, row) &&
+        range.containsCell(columnCount - 1, row)
+      ) {
         return true;
       }
     }
@@ -157,13 +149,10 @@ export class RangedSelection implements Selection, TickRangeSelection {
     const { rowCount } = this.getModel();
     for (let i = 0; i < this.ranges.length; i += 1) {
       const range = this.ranges[i];
-      const columnInRange =
-        range.startColumn === null ||
-        (range.startColumn <= column && column <= (range.endColumn ?? 0));
-      const allRowsSelected =
-        range.startRow === null ||
-        (range.startRow === 0 && (range.endRow ?? -1) === rowCount - 1);
-      if (columnInRange && allRowsSelected) {
+      if (
+        range.containsCell(column, 0) &&
+        range.containsCell(column, rowCount - 1)
+      ) {
         return true;
       }
     }
