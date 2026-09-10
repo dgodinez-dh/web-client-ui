@@ -23,6 +23,7 @@ type TableNames =
   | 'simple_table_empty'
   | 'simple_table_header_group'
   | 'simple_table_header_group_hide'
+  | 'keyed_table'
   | 'double_and_string'
   | 'ordered_int_and_offset'
   | 'trig_table'

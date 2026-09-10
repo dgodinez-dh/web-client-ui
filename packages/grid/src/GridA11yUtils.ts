@@ -1,7 +1,7 @@
 import type GridMetrics from './GridMetrics';
 import { type VisibleIndex } from './GridMetrics';
 import type GridModel from './GridModel';
-import GridRange from './GridRange';
+import type { Selection } from './Selection';
 
 /**
  * Attributes on the accessibility snapshot that Grid renders into its canvas
@@ -220,53 +220,21 @@ function getColumnHeaderRect(
 }
 
 /**
- * Get a description of the current selection.
- * @param ranges The selected ranges
- * @returns A sentence describing the selection
- */
-function getSelectionDescription(ranges: readonly GridRange[]): string {
-  const cellCount = GridRange.cellCount(ranges);
-  if (!Number.isNaN(cellCount)) {
-    return cellCount === 1
-      ? '1 cell selected.'
-      : `${cellCount} cells selected.`;
-  }
-
-  // A range with no countable cells is unbounded in one direction, i.e. whole
-  // rows or whole columns, which is what clicking a row or a column header gives
-  const rowCount = GridRange.rowCount(ranges);
-  if (!Number.isNaN(rowCount)) {
-    return rowCount === 1 ? '1 row selected.' : `${rowCount} rows selected.`;
-  }
-
-  const columnCount = GridRange.columnCount(ranges);
-  if (!Number.isNaN(columnCount)) {
-    return columnCount === 1
-      ? '1 column selected.'
-      : `${columnCount} columns selected.`;
-  }
-
-  return ranges.length === 1
-    ? 'Everything selected.'
-    : `${ranges.length} selection ranges selected.`;
-}
-
-/**
  * Get a brief description of the grid size and selection.
  * Only reads values the grid already has on hand, so it is cheap enough to
  * regenerate on every render.
  * @param model The model being displayed
- * @param selectedRanges The selected ranges
+ * @param selection The current selection, or `null` when none
  * @returns A sentence describing the grid
  */
 export function getGridA11ySummary(
   model: GridModel,
-  selectedRanges: readonly GridRange[] = []
+  selection: Selection | null = null
 ): string {
   const { rowCount, columnCount } = model;
   const size = `Grid with ${rowCount} rows and ${columnCount} columns.`;
-  return selectedRanges.length > 0
-    ? `${size} ${getSelectionDescription(selectedRanges)}`
+  return selection != null && !selection.isEmpty()
+    ? `${size} ${selection.describe()}`
     : size;
 }
 
@@ -315,13 +283,13 @@ function getVisibleRowsDescription(rows: readonly VisibleIndex[]): string {
  * Iterates every visible cell, so only generate it on demand.
  * @param model The model being displayed
  * @param metrics Metrics of the last render
- * @param selectedRanges The selected ranges
+ * @param selection The current selection, or `null` when none
  * @returns The snapshot to render into the canvas fallback content
  */
 export function createGridA11ySnapshot(
   model: GridModel,
   metrics: GridMetrics,
-  selectedRanges: readonly GridRange[] = []
+  selection: Selection | null = null
 ): GridA11ySnapshot {
   const { rowCount, columnCount } = model;
   const columns: GridA11yColumnSnapshot[] = [];
@@ -414,7 +382,7 @@ export function createGridA11ySnapshot(
       : `${visibleRows}.`;
 
   return {
-    description: `${getGridA11ySummary(model, selectedRanges)} ${viewport}`,
+    description: `${getGridA11ySummary(model, selection)} ${viewport}`,
     rowCount,
     columnCount,
     columns,

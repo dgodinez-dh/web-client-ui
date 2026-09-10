@@ -50,8 +50,8 @@ export function GridA11yFallback({
     if (renderState == null) {
       return null;
     }
-    const { model, metrics, selectedRanges } = renderState;
-    return createGridA11ySnapshot(model, metrics, selectedRanges);
+    const { model, metrics, selection } = renderState;
+    return createGridA11ySnapshot(model, metrics, selection);
   }, [renderState]);
 
   return (
