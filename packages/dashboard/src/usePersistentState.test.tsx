@@ -26,6 +26,9 @@ function BasicTestComponent({
   version?: number;
   migrations?: PersistentStateMigration[];
   deleteOnUnmount?: boolean;
+  /** Read by useDhId from the fiber's props */
+  // eslint-disable-next-line react/no-unused-prop-types
+  __dhId?: string;
 }) {
   const [state, setState] = usePersistentState(
     useInitializerFunction ? () => `default-${label}` : `default-${label}`,
@@ -540,6 +543,118 @@ describe('usePersistentState', () => {
         expect.objectContaining({ state: 'default-bar' }),
       ],
     ]);
+  });
+});
+
+describe('usePersistentState keyRoot', () => {
+  function KeyRootWrapper({
+    children,
+    initialState = [],
+    onChange = jest.fn(),
+  }: {
+    children: React.ReactNode;
+    initialState?: [string, PersistentState][];
+    onChange?: (state: [string, PersistentState][]) => void;
+  }) {
+    return (
+      <FiberProvider>
+        <PanelIdContext.Provider value="other-panel">
+          <PersistentStateProvider
+            initialState={initialState}
+            onChange={onChange}
+            keyRoot="/ui.panel"
+          >
+            {children}
+          </PersistentStateProvider>
+        </PanelIdContext.Provider>
+      </FiberProvider>
+    );
+  }
+
+  function renderWithKeyRoot(
+    initialState: [string, PersistentState][] = [],
+    onChange = jest.fn()
+  ) {
+    return render(
+      <KeyRootWrapper initialState={initialState} onChange={onChange}>
+        <BasicTestComponent label="root" __dhId="/ui.panel" />
+        <BasicTestComponent label="child" __dhId="/ui.panel/ui.table" />
+        <BasicTestComponent label="sibling" __dhId="/ui.panel2/ui.table" />
+        <BasicTestComponent label="panel" />
+      </KeyRootWrapper>
+    );
+  }
+
+  it('saves keys within the key root relative to it', async () => {
+    const mockOnChange = jest.fn();
+    renderWithKeyRoot([], mockOnChange);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Update child' }));
+
+    expect(mockOnChange).toHaveBeenLastCalledWith([
+      ['.::test-root', expect.objectContaining({ state: 'default-root' })],
+      [
+        './ui.table::test-child',
+        expect.objectContaining({ state: 'updated-child' }),
+      ],
+      [
+        '/ui.panel2/ui.table::test-sibling',
+        expect.objectContaining({ state: 'default-sibling' }),
+      ],
+      [
+        'other-panel::test-panel',
+        expect.objectContaining({ state: 'default-panel' }),
+      ],
+    ]);
+  });
+
+  it('loads both relative and absolute keys', () => {
+    renderWithKeyRoot([
+      ['.::test-root', { type: 'test-root', version: 1, state: 'saved-root' }],
+      [
+        '/ui.panel/ui.table::test-child',
+        { type: 'test-child', version: 1, state: 'saved-child' },
+      ],
+      [
+        '/ui.panel2/ui.table::test-sibling',
+        { type: 'test-sibling', version: 1, state: 'saved-sibling' },
+      ],
+    ]);
+
+    expect(screen.getByText('saved-root')).toBeInTheDocument();
+    expect(screen.getByText('saved-child')).toBeInTheDocument();
+    expect(screen.getByText('saved-sibling')).toBeInTheDocument();
+  });
+
+  it('rewrites absolute keys in the relative form', () => {
+    const mockOnChange = jest.fn();
+    renderWithKeyRoot(
+      [
+        [
+          '/ui.panel/ui.table::test-child',
+          { type: 'test-child', version: 1, state: 'saved-child' },
+        ],
+      ],
+      mockOnChange
+    );
+
+    const keys = mockOnChange.mock.lastCall[0].map(([key]: [string]) => key);
+    expect(keys).toContain('./ui.table::test-child');
+    expect(keys).not.toContain('/ui.panel/ui.table::test-child');
+  });
+
+  it('prefers the relative key when both forms are saved', () => {
+    const state = (value: string) => ({
+      type: 'test-child',
+      version: 1,
+      state: value,
+    });
+    renderWithKeyRoot([
+      ['./ui.table::test-child', state('relative-child')],
+      ['/ui.panel/ui.table::test-child', state('absolute-child')],
+    ]);
+
+    expect(screen.getByText('relative-child')).toBeInTheDocument();
   });
 });
 

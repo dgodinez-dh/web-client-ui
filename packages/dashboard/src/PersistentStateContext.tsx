@@ -71,13 +71,66 @@ export type PersistentStateProviderProps = React.PropsWithChildren<{
    * @param state The state of all calls to usePersistentState.
    */
   onChange: (state: [PersistentStateKey, PersistentState][]) => void;
+
+  /**
+   * The dhId all saved keys are relative to, usually the id of the panel.
+   * Keys within it are saved with it replaced by `.` to keep the saved state small.
+   * Keys saved with the full dhId are still read.
+   * Only read on mount, so change the provider's `key` along with it.
+   */
+  keyRoot?: string;
 }>;
+
+type PersistentStateKey = string;
+
+const RELATIVE_KEY_ROOT = '.';
 
 function makeKey(dhId: string, type: string): PersistentStateKey {
   return `${dhId}::${type}`;
 }
 
-type PersistentStateKey = string;
+/**
+ * Replaces the key root at the start of a key with `.`
+ * @param key The key to make relative
+ * @param keyRoot The dhId the key is relative to
+ * @returns The relative key, or the key unchanged if it isn't within the key root
+ */
+function makeRelativeKey(
+  key: PersistentStateKey,
+  keyRoot: string | undefined
+): PersistentStateKey {
+  if (
+    keyRoot != null &&
+    keyRoot !== '' &&
+    (key.startsWith(`${keyRoot}/`) || key.startsWith(`${keyRoot}::`))
+  ) {
+    return `${RELATIVE_KEY_ROOT}${key.slice(keyRoot.length)}`;
+  }
+  return key;
+}
+
+function isRelativeKey(key: PersistentStateKey): boolean {
+  return (
+    key.startsWith(`${RELATIVE_KEY_ROOT}/`) ||
+    key.startsWith(`${RELATIVE_KEY_ROOT}::`)
+  );
+}
+
+/**
+ * Replaces the `.` at the start of a relative key with the key root
+ * @param key The key to expand
+ * @param keyRoot The dhId the key is relative to
+ * @returns The full key, or the key unchanged if it isn't relative
+ */
+function expandKey(
+  key: PersistentStateKey,
+  keyRoot: string | undefined
+): PersistentStateKey {
+  if (keyRoot != null && keyRoot !== '' && isRelativeKey(key)) {
+    return `${keyRoot}${key.slice(RELATIVE_KEY_ROOT.length)}`;
+  }
+  return key;
+}
 
 /**
  * Gets the entries to persist. Entries with undefined state are left out because they
@@ -100,7 +153,7 @@ function getPersistableEntries(
 export function PersistentStateProvider(
   props: PersistentStateProviderProps
 ): JSX.Element {
-  const { initialState, onChange, children } = props;
+  const { initialState, onChange, keyRoot, children } = props;
 
   const isMounted = useRef(true);
   useEffect(
@@ -117,14 +170,33 @@ export function PersistentStateProvider(
       Array.isArray(initialState) &&
       initialState.flat().length === 2 * initialState.length
     ) {
-      return new Map<string, PersistentState>(
-        initialState as [string, PersistentState][]
-      );
+      const map = new Map<string, PersistentState>();
+      const relativelyLoadedKeys = new Set<PersistentStateKey>();
+      (initialState as [string, PersistentState][]).forEach(([key, state]) => {
+        const fullKey = expandKey(key, keyRoot);
+        if (fullKey !== key) {
+          relativelyLoadedKeys.add(fullKey);
+        } else if (relativelyLoadedKeys.has(fullKey)) {
+          // The relative key was saved more recently than the old absolute one
+          return;
+        }
+        map.set(fullKey, state);
+      });
+      return map;
     }
     needsMigrationToMap.current = true;
     // Used to migrate from array to map
     return new Map<string, PersistentState>();
   });
+
+  const emitChange = useCallback(() => {
+    onChange(
+      getPersistableEntries(stateMap).map(([key, state]) => [
+        makeRelativeKey(key, keyRoot),
+        state,
+      ])
+    );
+  }, [keyRoot, onChange, stateMap]);
 
   // Track which hookId currently owns each (dhId, type) pair
   const hookOwnership = useRef(new Map<PersistentStateKey, string>());
@@ -145,10 +217,10 @@ export function PersistentStateProvider(
 
       if (isMounted.current && stateMap.get(key) !== state) {
         stateMap.set(key, state);
-        onChange(getPersistableEntries(stateMap));
+        emitChange();
       }
     },
-    [isMounted, onChange, stateMap]
+    [isMounted, emitChange, stateMap]
   );
 
   const initialStateIterator = useRef(initialState[Symbol.iterator]());
@@ -189,11 +261,11 @@ export function PersistentStateProvider(
         stateMap.delete(key);
         hookOwnership.current.delete(key);
         if (isMounted.current) {
-          onChange(getPersistableEntries(stateMap));
+          emitChange();
         }
       }
     },
-    [isMounted, onChange, stateMap]
+    [isMounted, emitChange, stateMap]
   );
 
   const deregisterHook = useCallback(

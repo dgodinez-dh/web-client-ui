@@ -2,6 +2,7 @@ import { useCallback, useState, type PropsWithChildren } from 'react';
 import Log from '@deephaven/log';
 import { PersistentStateProvider } from './PersistentStateContext';
 import type { PanelProps } from './DashboardPlugin';
+import { usePanelId } from './usePanelId';
 
 const log = Log.module('DashboardPanelWrapper');
 
@@ -9,6 +10,7 @@ export function DashboardPanelWrapper({
   glContainer,
   children,
 }: PropsWithChildren<PanelProps>): JSX.Element {
+  const panelId = usePanelId();
   const handleDataChange = useCallback(
     (data: unknown) => {
       glContainer.setPersistedState(data);
@@ -33,6 +35,7 @@ export function DashboardPanelWrapper({
     <PersistentStateProvider
       initialState={initialPersistedState}
       onChange={handleDataChange}
+      keyRoot={panelId ?? undefined}
     >
       {children}
     </PersistentStateProvider>
